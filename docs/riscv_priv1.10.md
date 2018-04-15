@@ -34,6 +34,7 @@ RISC-V Privileged Architecture 1.10学习记录
     * 1：所有同步异常在`BASE`处理，所有异步异常（中断）在`BASE + 4 * cause`处处理
 * 代理：`xedeleg`和`xideleg`可以将指定类型的中断代理给更低的一级模式进行处理（感觉有点像高级语言异常处理里把异常抛出的操作）
 * trapframe：保存在`xstatus`寄存器中，其中`xpie`是中断前的中断使能位（相当于x86的`IF`位），`xepc`就是`EPC`，`xpp`是中断前的特权级。
+* 时钟中断：`mtime`和`mtimecmp`，当`mtime >= mtimecmp`时中断。
 
 
 等待中断：`wfi`指令，告知CPU暂停内核线程等待中断。
