@@ -1,12 +1,12 @@
 #include <kio.h>
 #include <console.h>
-#include <sync.h>
+// #include <sync.h>
 #include <trap.h>
 #include <stdio.h>
-#include <spinlock.h>
+// #include <spinlock.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <mod.h>
+// #include <mod.h>
 
 /* *
  * cputch - writes a single character @c to stdout, and it will
@@ -18,7 +18,7 @@ static void cputch(int c, int *cnt, int fd)
 	(*cnt)++;
 }
 
-static spinlock_s kprintf_lock = { 0 };
+// static spinlock_s kprintf_lock = { 0 };
 
 /* *
  * vkprintf - format a string and writes it to stdout
@@ -33,11 +33,11 @@ int vkprintf(const char *fmt, va_list ap)
 {
 	int cnt = 0;
 	int flag;
-	local_intr_save_hw(flag);
-	spinlock_acquire(&kprintf_lock);
+	//local_intr_save_hw(flag);
+	//spinlock_acquire(&kprintf_lock);
 	vprintfmt((void *)cputch, NO_FD, &cnt, fmt, ap);
-	spinlock_release(&kprintf_lock);
-	local_intr_restore_hw(flag);
+	//spinlock_release(&kprintf_lock);
+	//local_intr_restore_hw(flag);
 	return cnt;
 }
 
@@ -57,4 +57,4 @@ int kprintf(const char *fmt, ...)
 	return cnt;
 }
 
-EXPORT_SYMBOL(kprintf);
+//EXPORT_SYMBOL(kprintf);

@@ -1,1 +1,0 @@
-obj-y = proc.o procentry.o switch.o signal.o

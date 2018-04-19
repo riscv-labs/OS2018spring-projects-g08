@@ -1,1 +1,1 @@
-obj-y := kio.o
+obj-y := kio.o string.o

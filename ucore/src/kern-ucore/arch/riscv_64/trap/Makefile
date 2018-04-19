@@ -1,1 +1,1 @@
-obj-y := vectors.o trap.o trapentry.o
+obj-y := trap.o trapentry.o

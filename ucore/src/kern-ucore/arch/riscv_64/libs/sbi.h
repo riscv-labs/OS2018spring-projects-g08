@@ -27,10 +27,10 @@
 #define SBI_SHUTDOWN 8
 
 #define SBI_CALL(which, arg0, arg1, arg2) ({			\
-	register uint_t a0 asm ("a0") = (uint_t)(arg0);	\
-	register uint_t a1 asm ("a1") = (uint_t)(arg1);	\
-	register uint_t a2 asm ("a2") = (uint_t)(arg2);	\
-	register uint_t a7 asm ("a7") = (uint_t)(which);	\
+	register uint64_t a0 asm ("a0") = (uint64_t)(arg0);	\
+	register uint64_t a1 asm ("a1") = (uint64_t)(arg1);	\
+	register uint64_t a2 asm ("a2") = (uint64_t)(arg2);	\
+	register uint64_t a7 asm ("a7") = (uint64_t)(which);	\
 	asm volatile ("ecall"					\
 		      : "+r" (a0)				\
 		      : "r" (a1), "r" (a2), "r" (a7)		\

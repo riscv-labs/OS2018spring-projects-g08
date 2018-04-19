@@ -1,4 +1,4 @@
-#include <riscv.h>
+#include <arch.h>
 
     .macro SAVE_ALL
 	.align 2

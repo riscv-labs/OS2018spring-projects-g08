@@ -6,5 +6,6 @@
 extern volatile size_t ticks;
 void clock_init(void);
 void clock_init_ap(void);
+void clock_set_next_event(void);
 
 #endif

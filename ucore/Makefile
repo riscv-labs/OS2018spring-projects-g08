@@ -217,4 +217,14 @@ FORCE:
 
 PHONY += FORCE
 
+
+qemu: kernel
+	$(Q)qemu-system-riscv64  -machine virt -kernel obj/kernel.img -nographic
+
+spike: kernel
+	$(Q)qemu-system-riscv64 obj/kernel.img
+
+PHONY += qemu spike
+
 .PHONY: $(PHONY)
+
