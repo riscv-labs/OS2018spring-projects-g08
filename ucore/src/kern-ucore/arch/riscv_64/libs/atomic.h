@@ -1,6 +1,8 @@
 #ifndef __ARCH_UM_INCLUDE_ATOMIC_H
 #define __ARCH_UM_INCLUDE_ATOMIC_H
 
+#include <types.h>
+
 /* Atomic operations that C can't guarantee us. Useful for resource counting
  * etc.. */
 

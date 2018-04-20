@@ -97,7 +97,7 @@ void interrupt_handler(struct trapframe *tf) {
             kprintf("Machine software interrupt\n");
             break;
         case IRQ_U_TIMER:
-            cprintf("User Timer interrupt\n");
+            kprintf("User Timer interrupt\n");
         case IRQ_S_TIMER:
             // "All bits besides SSIP and USIP in the sip register are
             // read-only." -- privileged spec1.9.1, 4.1.4, p59

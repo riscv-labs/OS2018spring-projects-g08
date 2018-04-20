@@ -6,6 +6,7 @@
 #include <pmm.h>
 #include <sbi.h>
 #include <stdio.h>
+#include <kio.h>
 #include <string.h>
 #include <sync.h>
 #include <arch.h>
@@ -15,7 +16,7 @@ struct Page *pages;
 // amount of physical memory (in pages)
 size_t npage = 0;
 // the kernel image is mapped at VA=KERNBASE and PA=info.base
-uint_t va_pa_offset;
+uint64_t va_pa_offset;
 // memory starts at 0x80000000 in RISC-V
 const size_t nbase = DRAM_BASE / PGSIZE;
 
@@ -51,7 +52,7 @@ static void init_pmm_manager(void) {
     extern char kern_entry[];
     pmm_manager = &default_pmm_manager;
 
-    cprintf("memory management: %s\n", pmm_manager->name);
+    kprintf("memory management: %s\n", pmm_manager->name);
 
     pmm_manager->init();
 }
@@ -101,14 +102,14 @@ size_t nr_free_pages(void) {
 static void page_init(void) {
     extern char kern_entry[];
 
-    va_pa_offset = KERNBASE - (uint_t)kern_entry;
+    va_pa_offset = KERNBASE - (uint64_t)kern_entry;
 
-    uint_t mem_begin = (uint_t)kern_entry;
-    uint_t mem_end = (8 << 20) + DRAM_BASE; // 8MB memory on qemu
-    uint_t mem_size = mem_end - mem_begin;
+    uint64_t mem_begin = (uint64_t)kern_entry;
+    uint64_t mem_end = (8 << 20) + DRAM_BASE; // 8MB memory on qemu
+    uint64_t mem_size = mem_end - mem_begin;
 
-    cprintf("physical memory map:\n");
-    cprintf("  memory: 0x%08lx, [0x%08lx, 0x%08lx].\n", mem_size, mem_begin,
+    kprintf("physical memory map:\n");
+    kprintf("  memory: 0x%08lx, [0x%08lx, 0x%08lx].\n", mem_size, mem_begin,
             mem_end - 1);
 
     uint64_t maxpa = mem_end;
@@ -391,7 +392,7 @@ void tlb_invalidate(pde_t *pgdir, uintptr_t la) {
 
 static void check_alloc_page(void) {
     pmm_manager->check();
-    cprintf("check_alloc_page() succeeded!\n");
+    kprintf("check_alloc_page() succeeded!\n");
 }
 
 static void check_pgdir(void) {
@@ -442,7 +443,7 @@ static void check_pgdir(void) {
     free_page(pde2page(boot_pgdir[0]));
     boot_pgdir[0] = 0;
 
-    cprintf("check_pgdir() succeeded!\n");
+    kprintf("check_pgdir() succeeded!\n");
 }
 
 static void check_boot_pgdir(void) {
@@ -467,8 +468,8 @@ static void check_boot_pgdir(void) {
 
     const char *str = "ucore: Hello world!!";
     strcpy((void *)0x100, str);
-    cprintf("-- szx (void *)0x100:%s\n",(void *)0x100);
-    cprintf("-- szx (void *)(0x100 + PGSIZE):%s\n",(void *)(0x100 + PGSIZE));
+    kprintf("-- szx (void *)0x100:%s\n",(void *)0x100);
+    kprintf("-- szx (void *)(0x100 + PGSIZE):%s\n",(void *)(0x100 + PGSIZE));
     assert(strcmp((void *)0x100, (void *)(0x100 + PGSIZE)) == 0);
 
     *(char *)(page2kva(p) + 0x100) = '\0';
@@ -478,7 +479,7 @@ static void check_boot_pgdir(void) {
     free_page(pde2page(boot_pgdir[0]));
     boot_pgdir[0] = 0;
 
-    cprintf("check_boot_pgdir() succeeded!\n");
+    kprintf("check_boot_pgdir() succeeded!\n");
 }
 
 // perm2str - use string 'u,r,w,-' to present the permission
@@ -507,15 +508,15 @@ static const char *perm2str(int perm) {
 static int get_pgtable_items(size_t left, size_t right, size_t start,
                              uintptr_t *table, size_t *left_store,
                              size_t *right_store) {
-	cprintf("-- szx get_pgtable_items: in start:%d, right:%d --\n",start,right);
+	kprintf("-- szx get_pgtable_items: in start:%d, right:%d --\n",start,right);
     if (start >= right) {
-    	cprintf("-- szx get_pgtable_items: out start>=right\n");
+    	kprintf("-- szx get_pgtable_items: out start>=right\n");
         return 0;
     }
-    cprintf("-- szx table[%d]:%p \n",start,table);
+    kprintf("-- szx table[%d]:%p \n",start,table);
     while (start < right && !(table[start] & PTE_V)) {
         start++;
-        cprintf("-- szx start1:%d --\n",start);
+        kprintf("-- szx start1:%d --\n",start);
     }
     if (start < right) {
         if (left_store != NULL) {
@@ -524,25 +525,25 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
         int perm = (table[start++] & PTE_USER);
         while (start < right && (table[start] & PTE_USER) == perm) {
             start++;
-            cprintf("-- szx start2:%d --\n",start);
+            kprintf("-- szx start2:%d --\n",start);
         }
         if (right_store != NULL) {
             *right_store = start;
         }
         return perm;
-    	cprintf("-- szx get_pgtable_items: out perm:%x --\n",perm);
+    	kprintf("-- szx get_pgtable_items: out perm:%x --\n",perm);
     }
-	cprintf("-- szx get_pgtable_items: out return 0\n");
+	kprintf("-- szx get_pgtable_items: out return 0\n");
     return 0;
 }
 
 // print_pgdir - print the PDT&PT
 void print_pgdir(void) {
-    cprintf("-------------------- BEGIN --------------------\n");
+    kprintf("-------------------- BEGIN --------------------\n");
     size_t left, right = 0, perm;
     while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
                                      &right)) != 0) {
-        cprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
+        kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
                 right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
 
         if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
@@ -566,7 +567,7 @@ void print_pgdir(void) {
 
                 if (old_perm != perm) {
                     if (old_perm != 0) {
-                        cprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
+                        kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
                                 old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
                                 (old_r - old_l) * PGSIZE, perm2str(old_perm));
                     }
@@ -579,10 +580,10 @@ void print_pgdir(void) {
             }
         }
         if (old_perm != 0) {
-            cprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
+            kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
                     old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
                     perm2str(old_perm));
         }
     }
-    cprintf("--------------------- END ---------------------\n");
+    kprintf("--------------------- END ---------------------\n");
 }
