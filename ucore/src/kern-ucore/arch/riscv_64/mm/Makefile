@@ -1,2 +1,2 @@
 # obj-y = buddy_pmm.o pmm.o swap.o vmm.o
-obj-y = pmm.o
+obj-y = pmm.o default_pmm.o
