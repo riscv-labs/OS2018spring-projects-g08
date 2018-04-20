@@ -214,6 +214,63 @@ make qemu CROSS_COMPILE=riscv64-unknown-elf-
 
 
 
+# Lab 2
+
+## Lab2与Lab1的区别（rv64）
+
+注：**tools/vector.c没用**。
+
+#### kmonitor.c
+
+1. 新增`bool is_kernel_panic(void);`的声明
+
+#### kmonitor.h
+
+1. 新增了几个函数声明
+
+#### clock.c
+
+1. 修改了一句bug的话：`__asm__ __volatile__("rdtime %0" : "=r"(n));`
+
+#### defs.h
+
+1. 删掉了一些定义。
+
+#### 新增加文件
+
+1. `default_pmm.h & c`，使用的是未经谭闻德优化的版本。在ucore+是buddy system，因此做法为：
+
+   - 不使用`default_pmm`，使用`arch/i386/mm/buddy_system`的两个文件。`Makefile`中增加对应的编译项。
+   - 将`pmm.c`中对应语句更换为`buddy_pmm_manager`
+   - `memlayout.h`中`struct Page`增加`buddy_system`需要的数据结构。
+
+2. `memlayout.h`加了很多
+
+3. `mmu.h`加了很多
+
+4. `pmm.h & c`加了很多
+
+5. `sync.h`。
+
+   **TODO：ucore+中增加了sync_init，amd64中用到，消息盒子之类的，这里init.c里暂时没有用到**。
+
+6. `atomic.h`
+
+7. `list.h`，与ucore_os_lab一样
+
+#### trap.c
+
+1. 修改了一句bug：
+
+   ```c++
+   case IRQ_U_TIMER:
+   	cprintf("User Timer interrupt\n");
+   ```
+
+#### kernel.ld
+
+增加了BASE
+
 
 
 
