@@ -1,4 +1,4 @@
-#include <default_pmm.h>
+#include <buddy_pmm.h>
 #include <types.h>
 #include <error.h>
 #include <memlayout.h>
@@ -50,7 +50,7 @@ static void check_boot_pgdir(void);
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
     extern char kern_entry[];
-    pmm_manager = &default_pmm_manager;
+    pmm_manager = &buddy_pmm_manager;
 
     kprintf("memory management: %s\n", pmm_manager->name);
 
