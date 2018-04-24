@@ -11,6 +11,69 @@
     * `lsmod`：调用`SYS_list_module`
     * `insmod`
     * `rmmod`
+* LKM编译：`src/kmod/`中的kernel module在x86下编译成功。编译时遇到的问题：
+    * 显示`compiler-gcc-7.h`不存在。看了一下ucore+只提供了gcc-3和gcc-4的头文件，似乎是不支持gcc-7这么新的版本。解决方案是装了个gcc 4.9.4
+    * 显示某个头文件中`__LINUX_ARM_ARCH__`未定义。解决方法是找到相应得文件随便定义一下（这个头文件似乎是ARM相关的，因此应该不会被用到，没什么关系）
+* LKM文件中的section：
+
+        There are 18 section headers, starting at offset 0x484:
+
+        Section Headers:
+        [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+        [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+        [ 1] .text             PROGBITS        00000000 000034 0000e0 00  AX  0   0  4
+        [ 2] .rel.text         REL             00000000 000754 000080 08     16   1  4
+        [ 3] .init.text        PROGBITS        00000000 000114 000028 00  AX  0   0  1
+        [ 4] .rel.init.text    REL             00000000 0007d4 000020 08     16   3  4
+        [ 5] .rodata           PROGBITS        00000000 00013c 000060 00   A  0   0  1
+        [ 6] .modinfo          PROGBITS        00000000 00019c 00000c 00   A  0   0  4
+        [ 7] .eh_frame         PROGBITS        00000000 0001a8 0000b8 00   A  0   0  4
+        [ 8] .rel.eh_frame     REL             00000000 0007f4 000028 08     16   7  4
+        [ 9] .data             PROGBITS        00000000 000260 00007c 00  WA  0   0 32
+        [10] .rel.data         REL             00000000 00081c 000018 08     16   9  4
+        [11] .gnu.linkonce.thi PROGBITS        00000000 0002e0 0000f4 00  WA  0   0 32
+        [12] .rel.gnu.linkonce REL             00000000 000834 000008 08     16  11  4
+        [13] .bss              NOBITS          00000000 0003d4 000000 00  WA  0   0  4
+        [14] .comment          PROGBITS        00000000 0003d4 000024 01  MS  0   0  1
+        [15] .shstrtab         STRTAB          00000000 0003f8 000089 00      0   0  1
+        [16] .symtab           SYMTAB          00000000 00083c 0001b0 10     17  20  4
+        [17] .strtab           STRTAB          00000000 0009ec 0000d4 00      0   0  1
+        Key to Flags:
+        W (write), A (alloc), X (execute), M (merge), S (strings)
+        I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+        O (extra OS processing required) o (OS specific), p (processor specific)
+
+    TODO:在`mod.c`中我发现
+
+        versindex = find_sec(hdr, sechdrs, secstrings, "__versions");
+    
+    但是上面的section表中并没有`__versions`这一项。
+
+    * 其中`.modinfo` section只包含license信息：
+        
+        Hex dump of section '.modinfo':
+        0x00000000 6c696365 6e73653d 47504c00          license=GPL.
+
+    TODO:在`mod.c`中我发现
+
+        staging = get_modinfo(sechdrs, infoindex, "staging");
+
+    不知道这个`staging`字段是什么。我并没有在`.modinfo`中发现这个字段。
+
+* 加载LKM
+    * 在Makefile中修改sfsimg的生成规则，将`hello.ko`文件加入文件系统：
+        
+        @cp -r $(TOPDIR)/src/kmod/hello.ko $(TMPSFS)/lib/modules/
+    
+    * 尝试在ucore+中通过`insmod`加载`hello.ko`：`insmod hello`。发现：`simplify_symbols: Unknown symbol printk`等，即`printk,driver_register,bus_register`三个符号找不到。检查`hello.ko`的符号表发现其中这三个符号确实没有链接上任何值：
+
+        23: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND printk
+        24: 00000040    60 OBJECT  GLOBAL DEFAULT    9 test_bus_type
+        25: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND driver_register
+        26: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND bus_register
+    * 将所有引用上述三个符号的语句全部注释掉后，`hello.ko`的符号表中不再包含它们。`hello.ko`能够正常加载和卸载了。加载后通过`lsmod`命令得到`Modules linked in: hello`，表明内核已经将`hello.ko`加入已加载模块列表中。
+    * TODO:研究上面三个符号在LKM中应该怎么处理。我猜LKM在加载的时候可能还需要考虑内核接口提供的符号，使其能够链接上内核中的功能，而不应该指望LKM中包含完备的符号引用关系
+    * 我发现如果输入的module不正确，`insmod`有时候会产生莫名的page fault
 
 
 # ELF
@@ -71,4 +134,5 @@
             } Elf32_Rela;
 
         * `.rela.text`：`.text`使用的重定位表
+* section的`address`字段：对于relocatable类型ELF，address都是0（似乎是的）
 * C中`__attribute__ ((section("name")))`可以把变量丢到指定的section里去（`PROGBITS`类型）而不是默认的`.data`或者`.bss`
