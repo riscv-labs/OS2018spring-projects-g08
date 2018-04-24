@@ -3,6 +3,7 @@
 # ucore+的LKM
 
 * 整体仿照了Linux的设计
+    * Linux下还提供了`modprobe`和`depmod`两个比较高层次的用户态工具
 * 内核提供的接口：一系列系统调用
     * `SYS_list_module`
     * `SYS_init_module`
@@ -72,7 +73,13 @@
         25: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND driver_register
         26: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND bus_register
     * 将所有引用上述三个符号的语句全部注释掉后，`hello.ko`的符号表中不再包含它们。`hello.ko`能够正常加载和卸载了。加载后通过`lsmod`命令得到`Modules linked in: hello`，表明内核已经将`hello.ko`加入已加载模块列表中。
-    * TODO:研究上面三个符号在LKM中应该怎么处理。我猜LKM在加载的时候可能还需要考虑内核接口提供的符号，使其能够链接上内核中的功能，而不应该指望LKM中包含完备的符号引用关系
+    * 研究上面三个符号在LKM中应该怎么处理。我猜LKM在加载的时候可能还需要考虑内核接口提供的符号，使其能够链接上内核中的功能，而不应该指望LKM中包含完备的符号引用关系
+        *  分析Linux下的LKM `fat.ko`，发现其符号表中存在大量未完成解析的符号（包括`printk`：`317: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printk`），这意味着这些符号的解析确实是在LKM加载时才动态完成的（类似于动态链接）
+        * http://tldp.org/HOWTO/Module-HOWTO/basekerncompat.html
+        * ucore+在发现未解析的符号时确实会尝试对符号进行解析，但是为什么连`printk`这种符号都无法解析？
+            * 内核中并没有`printk`这个函数。感觉情况是：ucore+的作者在写LKM时直接粘了Linux的代码，但是内核又有很大部分用的是与Linux不同的框架，这使这个LKM实际上并不兼容ucore+
+    * 将原来`hello`中的`printk`换成`kprintf`，发现不会再有Unknown symbol的错误，LKM也能（表面上）加载、卸载，但是没有期望的输出。经过研究我发现：内核并没有在完成LKM的链接后执行`mod->init`，因为它是个空指针，而这个空指针意味着内核对LKM进行重定位时没能正确地修改`mod->init`。我发现重定位`mod->init`时修改的内存地址与`mod->init`的地址并不相等，于是我开始怀疑LKM中`module`结构体里`init`的位置与内核中定义的`module`中`init`的位置并不一样。我比较了`linux/module.h`（LKM使用）和`mod.h`（内核使用）中各自的`struct module`，发现它们的确不一样，`linux/module.h`中的`module`多出了很多字段。我将这些多余的字段注释掉后，`hello`就能在加载时正常输出字符串了。
+    * 之后又发现卸载`hello`时`exit`为空指针。我又发现`linux/module.h`和`mod.h`中定义的`struct module`的更多不同。我通过将`exit`字段直接调整到`init`字段之后，确保了`exit`在二者的偏移量相同，使`hello`能够正常卸载并输出字符串。
     * 我发现如果输入的module不正确，`insmod`有时候会产生莫名的page fault
 
 
@@ -136,3 +143,8 @@
         * `.rela.text`：`.text`使用的重定位表
 * section的`address`字段：对于relocatable类型ELF，address都是0（似乎是的）
 * C中`__attribute__ ((section("name")))`可以把变量丢到指定的section里去（`PROGBITS`类型）而不是默认的`.data`或者`.bss`
+
+
+# 其他
+
+* `printk`：实际上是内核的日志机制。消息分为8个不同的级别（例如`KERN_INFO, KERN_ALERT`等）
