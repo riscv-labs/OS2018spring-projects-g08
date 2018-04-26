@@ -67,12 +67,10 @@ struct modversion_info {
 struct mod_arch_specific {
 };
 
-/*
- * We don't need these. They are obsolete.
+//  * We don't need these. They are obsolete.
 
 extern int init_module(void);
 extern void cleanup_module(void);
- */
 
 #define __EXPORT_SYMBOL(sym, sec) 				\
 	extern typeof(sym) sym; 			\
@@ -109,6 +107,8 @@ struct module {
 	// startup function
 	int (*init) (void);
 
+	// destruction function
+	void (*exit) (void);
 	// if non-NULL, free after init() returns
 	void *module_init;
 
@@ -138,8 +138,6 @@ struct module {
 	// TODO: task waiter
 	struct proc_struct *waiter;
 
-	// destruction function
-	void (*exit) (void);
 
 	atomic_t ref;
 };

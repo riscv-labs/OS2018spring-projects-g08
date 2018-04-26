@@ -593,7 +593,8 @@ static void layout_sections(struct module *mod,
 			    || strncmp(secstrings + s->sh_name, ".init",
 				       strlen(".init")) == 0)
 				continue;
-			s->sh_entsize = get_offset(mod, &mod->core_size, s, i);
+			s->sh_entsize = get_offset(mod, &mod->core_size, s, i); // sh_entsize borrowed to store
+			// the offset?
 			kprintf("\t%s\n", secstrings + s->sh_name);
 		}
 		if (m == 0)
@@ -609,10 +610,10 @@ static void layout_sections(struct module *mod,
 			    || (s->sh_flags & masks[m][1])
 			    || s->sh_entsize != ~0UL
 			    || strncmp(secstrings + s->sh_name, ".init",
-				       strlen(".init")) != 0)
+				       strlen(".init")) != 0) // begin with `.init`?
 				continue;
 			s->sh_entsize = get_offset(mod, &mod->init_size, s, i)
-			    | INIT_OFFSET_MASK;
+			    | INIT_OFFSET_MASK; // masked to be different from core
 			kprintf("\t%s\n", secstrings + s->sh_name);
 		}
 		if (m == 0)
@@ -701,6 +702,9 @@ static int simplify_symbols(struct secthdr *sechdrs,
 			ret = -1;
 			break;
 		default:
+			// shifting offset
+			// (relative addressing)
+			// (add the address of the corresponding section)
 			if (sym[i].st_shndx == pcpuindex)
 				secbase = (unsigned long)mod->percpu;
 			else
@@ -735,13 +739,14 @@ static noinline struct module *load_module(void __user * umod,
 
 	if (len < sizeof(*hdr))
 		return NULL;
-	if (len > 64 * 1024 * 1024 || (hdr = kmalloc(len)) == NULL)
+	if (len > 64 * 1024 * 1024 || (hdr = kmalloc(len)) == NULL) // space to hold the data
 		return NULL;
 
 	kprintf("load_module: copy_from_user\n");
 
 	struct mm_struct *mm = current->mm;
 	lock_mm(mm);
+	// all contents are copied to hdr
 	if (!copy_from_user(mm, hdr, umod, len, 1)) {
 		unlock_mm(mm);
 		goto free_hdr;
@@ -760,6 +765,7 @@ static noinline struct module *load_module(void __user * umod,
 	if (len < hdr->e_shoff + hdr->e_shnum * sizeof(*sechdrs))
 		goto truncated;
 
+	// section 0 is always a NULL section?
 	sechdrs = (void *)hdr + hdr->e_shoff;
 	secstrings = (void *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
 	sechdrs[0].sh_addr = 0;
@@ -770,16 +776,20 @@ static noinline struct module *load_module(void __user * umod,
 			goto truncated;
 
 		// mark sh_addr
-		sechdrs[i].sh_addr = (size_t) hdr + sechdrs[i].sh_offset;
+		sechdrs[i].sh_addr = (size_t) hdr + sechdrs[i].sh_offset; // section body offset is
+		// respective to the ELF header
 
+		// assuming only one symtab?
 		if (sechdrs[i].sh_type == SHT_SYMTAB) {
 			symindex = i;
-			strindex = sechdrs[i].sh_link;
+			strindex = sechdrs[i].sh_link; // sym name section
 			strtab = (char *)hdr + sechdrs[strindex].sh_offset;
 		}
 
 	}
 
+	// Find some specific segments
+	// TODO: find out what these segments do
 	modindex =
 	    find_sec(hdr, sechdrs, secstrings, ".gnu.linkonce.this_module");
 
@@ -790,14 +800,15 @@ static noinline struct module *load_module(void __user * umod,
 	// temp: point mod into copy of data
 	mod = (void *)sechdrs[modindex].sh_addr;
 
+	kprintf("Init %x\n", (unsigned long)(&mod->init)); // ok, before reloc
 	if (symindex == 0) {
 		kprintf("load_module: %s module has no symbols (stripped?).\n",
 			mod->name);
 		goto free_hdr;
 	}
-	versindex = find_sec(hdr, sechdrs, secstrings, "__versions");
+	versindex = find_sec(hdr, sechdrs, secstrings, "__versions"); // TODO: ????
 	infoindex = find_sec(hdr, sechdrs, secstrings, ".modinfo");
-	pcpuindex = find_pcpusec(hdr, sechdrs, secstrings);
+	pcpuindex = find_pcpusec(hdr, sechdrs, secstrings); // TODO:????
 
 	// don't keep modinfo and version
 	sechdrs[infoindex].sh_flags &= ~(unsigned long)SHF_ALLOC;
@@ -807,7 +818,7 @@ static noinline struct module *load_module(void __user * umod,
 	sechdrs[symindex].sh_flags |= SHF_ALLOC;
 	sechdrs[strindex].sh_flags |= SHF_ALLOC;
 
-	if (!check_modstruct_version(sechdrs, versindex, mod)) {
+	if (!check_modstruct_version(sechdrs, versindex, mod)) { // TODO: ???????
 		goto free_hdr;
 	}
 
@@ -823,7 +834,7 @@ static noinline struct module *load_module(void __user * umod,
 	   }
 	 */
 
-	staging = get_modinfo(sechdrs, infoindex, "staging");
+	staging = get_modinfo(sechdrs, infoindex, "staging"); // TODO: where is this staging info from?
 	// TODO: staging is left for future use.
 
 	if (find_module(mod->name)) {
@@ -840,6 +851,8 @@ static noinline struct module *load_module(void __user * umod,
 
 	layout_sections(mod, hdr, sechdrs, secstrings);
 
+	// it seems that space for LKMs have bounds
+	// reallocate core and init separately
 	ptr = module_alloc_update_bounds(mod->core_size);
 
 	if (!ptr) {
@@ -879,6 +892,7 @@ static noinline struct module *load_module(void __user * umod,
 	}
 	/* Module has been moved. */
 	mod = (void *)sechdrs[modindex].sh_addr;
+	kprintf("Exit (after migration) %x\n", (unsigned long)(&mod->exit)); // ok, before reloc
 
 	/* Now we've moved module, initialize linked lists, etc. */
 	module_unload_init(mod);
@@ -893,7 +907,7 @@ static noinline struct module *load_module(void __user * umod,
 		goto cleanup;
 
 	mod->syms = section_objs(hdr, sechdrs, secstrings, "__ksymtab",
-				 sizeof(*mod->syms), &mod->num_syms);
+				 sizeof(*mod->syms), &mod->num_syms); // TODO: are these for exported symbols only?????
 	mod->crcs = section_addr(hdr, sechdrs, secstrings, "__kcrctab");
 
 	// relocations
@@ -911,7 +925,7 @@ static noinline struct module *load_module(void __user * umod,
 
 		if (sechdrs[i].sh_type == SHT_REL)
 			err = apply_relocate(sechdrs, strtab, symindex, i, mod);
-		else if (sechdrs[i].sh_type == SHT_RELA)
+		else if (sechdrs[i].sh_type == SHT_RELA) // this seems unsupported.
 			err =
 			    apply_relocate_add(sechdrs, strtab, symindex, i,
 					       mod);
@@ -958,8 +972,9 @@ truncated:
 	goto free_hdr;
 }
 
+// umod: buffer that stores the contents of the kernel module file
 int do_init_module(void __user * umod, unsigned long len,
-		   const char __user * uargs)
+		   const char __user * uargs) // TODO: what is this uargs?
 {
 	struct module *mod;
 	int ret = 0;
@@ -967,14 +982,20 @@ int do_init_module(void __user * umod, unsigned long len,
 	// TODO: non-preemptive kernel does not need to lock module mutex
 
 	mod = load_module(umod, len, uargs);
+	kprintf("Init %x\n", (unsigned long)(&mod->init)); // after reloc
 	if (mod == NULL) {
 		// TODO: non-preemptive kernel does not need to unlock module mutex
 		return -1;
 	}
 	// TODO: non-preemptive kernel does not need to unlock module mutex
 
-	if (mod->init != NULL)
+	kprintf("Loading finished!\n");
+
+	if (mod->init != NULL){
+		kprintf("About to run the module initialization procedure.\n");
+		kprintf("Entry point: %x\n", (unsigned long)mod->init);
 		ret = (*mod->init) ();
+	}
 	if (ret < 0) {
 		mod->state = MODULE_STATE_GOING;
 		// TODO: non-preemptive kernel does not need to lock module mutex
@@ -1053,6 +1074,7 @@ out:
 
 }
 
+// TODO: ??????????
 int module_finalize(const struct elfhdr *hdr,
 		    const struct secthdr *sechdrs, struct module *mod)
 {
@@ -1069,6 +1091,7 @@ int module_finalize(const struct elfhdr *hdr,
 		if (!strcmp(".parainstructions", secstrings + s->sh_name))
 			para = s;
 	}
+	// kprintf("%x %x %x %x\n", text, alt, locks, para);
 	if (alt) {
 		kprintf("apply_relocate_add: patch .altinstructions");
 	}

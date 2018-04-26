@@ -15,8 +15,9 @@ int apply_relocate(struct secthdr *sechdrs,
 		sechdrs[relsec].sh_info);
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
 		/* This is where to make the change */
-		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-		    + rel[i].r_offset;
+		location = (void *)(sechdrs[sechdrs[relsec].sh_info].sh_addr
+		    + rel[i].r_offset);
+		kprintf("RELOC %x\n",(unsigned long)location);
 		/* This is the symbol it is referring to.  Note that all
 		   undefined symbols have been resolved.  */
 		sym = (struct symtab_s *)sechdrs[symindex].sh_addr

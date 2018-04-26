@@ -6,7 +6,7 @@ include ${T_BASE}/mk/compk.mk
 include ${T_BASE}/mk/template.mk
 
 hello.ko: hello.c hello.mod.c
-	$(CC) -c -D__KERNEL__ -DMODULE $(KERNEL_INC) $^
+	$(CC) -c -D__KERNEL__ -DMODULE $(KERNEL_INC) hello.c
 	$(CC) -c -D__KERNEL__ -DMODULE $(KERNEL_INC) hello.mod.c
 	$(LD) -r -o $@ hello.o hello.mod.o
 

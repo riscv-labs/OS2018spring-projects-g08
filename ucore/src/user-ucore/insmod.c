@@ -21,6 +21,7 @@ static char path[MX_MOD_PATH_LEN];
 #define USAGE "insmod <mod-name>\n"
 #define LOADING "loading module "
 
+// check whether a full file name is given
 int in_short(const char *name, int size)
 {
 	return size < 3 || strcmp(KERN_MODULE_SUFFIX, &name[size - 3]) != 0;
@@ -61,6 +62,7 @@ void load_mod(const char *name)
 		cprintf("not enough memory to load the module\n");
 		return;
 	}
+	// read all contents into the memory
 	int copied = read(fd, buffer, mod_stat.st_size);
 	cprintf("module size: %d, mem addr: %x\n", copied, buffer);
 	ret = init_module(buffer, copied, NULL);
@@ -72,8 +74,10 @@ void load_mod(const char *name)
 void load(const char *name, int size)
 {
 	if (in_short(name, size)) {
+		// if not a full file name
 		snprintf(path, size + KERN_MODULE_ADDITIONAL_LEN + 1,
-			 KERN_MODULE_PREFIX "%s" KERN_MODULE_SUFFIX, name);
+			 KERN_MODULE_PREFIX "%s" KERN_MODULE_SUFFIX, name); // format a string and
+			 // put it into a buffer (like sprintf)
 		cprintf(LOADING "%s\n", path);
 		load_mod(path);
 	} else {
@@ -90,7 +94,7 @@ int handle_dep(const char *line, const char *name)
 	int name_len = strlen(name);
 	int line_len = strlen(line);
 	if (line_len < name_len + 1) {
-		return 0;
+		return 0; // this line can't contain the module name
 	}
 	int i;
 	for (i = 0; i < name_len; i++) {
@@ -98,10 +102,13 @@ int handle_dep(const char *line, const char *name)
 			return 0;
 		}
 	}
+	// check the lhs of the rule is the module name
 	if (line[name_len] != ':') {
 		return 0;
 	}
 	cprintf("[ II ] module dependency rule match: %s\n", line);
+	// the right hand side contains all necessary modules
+	// separated by white spaces
 	int j = 0;
 	for (i = name_len + 1; i < line_len;) {
 		if (line[i] == ' ') {
@@ -119,6 +126,8 @@ int handle_dep(const char *line, const char *name)
 	return 1;
 }
 
+// loading a dependency description file (each line is a rule)
+// and check the module dependency (line by line)
 void load_dep(const char *name)
 {
 	char buffer[1024];
@@ -132,7 +141,8 @@ void load_dep(const char *name)
 			if (p > 0) {
 				int handled = handle_dep(buffer, name);
 				if (handled) {
-					return;
+					return; // this means that each module can appear at most once in
+					// the left hand side of a rule
 				}
 			}
 			p = 0;
@@ -151,8 +161,13 @@ int main(int argc, char **argv)
 		write(1, USAGE, strlen(USAGE));
 		return 0;
 	}
+	//TODO: should check whether the module name contains any
+	//bad characters?
+	// etc. / .. 
 	char *short_name = get_short_name(argv[1]);
+	cprintf("Short name is %s\n", short_name);	
 	load_dep(short_name);
+	cprintf("GOOD, I have passed load_dep!\n");
 	load(argv[1], strlen(argv[1]));
 	return 0;
 }

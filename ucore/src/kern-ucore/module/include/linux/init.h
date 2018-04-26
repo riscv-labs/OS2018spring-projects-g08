@@ -288,6 +288,7 @@ void __init parse_early_param(void);
 	static inline initcall_t __inittest(void)		\
 	{ return initfn; }					\
 	int init_module(void) __attribute__((alias(#initfn)));
+// this directly set init_module=initfn
 
 /* This is only required if you want to be unloadable. */
 #define module_exit(exitfn)					\

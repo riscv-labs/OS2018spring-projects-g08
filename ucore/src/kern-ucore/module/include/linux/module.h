@@ -231,11 +231,11 @@ struct module {
 	char name[MODULE_NAME_LEN];
 
 	/* Sysfs stuff. */
-	struct module_kobject mkobj;
-	struct module_attribute *modinfo_attrs;
-	const char *version;
-	const char *srcversion;
-	struct kobject *holders_dir;
+	// struct module_kobject mkobj;
+	// struct module_attribute *modinfo_attrs;
+	// const char *version;
+	// const char *srcversion;
+	// struct kobject *holders_dir;
 
 	/* Exported symbols */
 	const struct kernel_symbol *syms;
@@ -243,33 +243,35 @@ struct module {
 	unsigned int num_syms;
 
 	/* GPL-only exported symbols. */
-	unsigned int num_gpl_syms;
-	const struct kernel_symbol *gpl_syms;
-	const unsigned long *gpl_crcs;
+	// unsigned int num_gpl_syms;
+	// const struct kernel_symbol *gpl_syms;
+	// const unsigned long *gpl_crcs;
 
 #ifdef CONFIG_UNUSED_SYMBOLS
 	/* unused exported symbols. */
-	const struct kernel_symbol *unused_syms;
-	const unsigned long *unused_crcs;
-	unsigned int num_unused_syms;
+	// const struct kernel_symbol *unused_syms;
+	// const unsigned long *unused_crcs;
+	// unsigned int num_unused_syms;
 
 	/* GPL-only, unused exported symbols. */
-	unsigned int num_unused_gpl_syms;
-	const struct kernel_symbol *unused_gpl_syms;
-	const unsigned long *unused_gpl_crcs;
+	// unsigned int num_unused_gpl_syms;
+	// const struct kernel_symbol *unused_gpl_syms;
+	// const unsigned long *unused_gpl_crcs;
 #endif
 
 	/* symbols that will be GPL-only in the near future. */
-	const struct kernel_symbol *gpl_future_syms;
-	const unsigned long *gpl_future_crcs;
-	unsigned int num_gpl_future_syms;
+	// const struct kernel_symbol *gpl_future_syms;
+	// const unsigned long *gpl_future_crcs;
+	// unsigned int num_gpl_future_syms;
 
 	/* Exception table */
-	unsigned int num_exentries;
-	struct exception_table_entry *extable;
+	// unsigned int num_exentries;
+	// struct exception_table_entry *extable;
 
 	/* Startup function. */
 	int (*init) (void);
+	/* Destruction function. */
+	void (*exit) (void);
 
 	/* If this is non-NULL, vfree after init() returns */
 	void *module_init;
@@ -290,9 +292,9 @@ struct module {
 
 #ifdef CONFIG_GENERIC_BUG
 	/* Support for BUG */
-	unsigned num_bugs;
-	struct list_head bug_list;
-	struct bug_entry *bug_table;
+	// unsigned num_bugs;
+	// struct list_head bug_list;
+	// struct bug_entry *bug_table;
 #endif
 
 #ifdef CONFIG_KALLSYMS
@@ -302,10 +304,10 @@ struct module {
 	char *strtab;
 
 	/* Section attributes */
-	struct module_sect_attrs *sect_attrs;
+	// struct module_sect_attrs *sect_attrs;
 
 	/* Notes attributes */
-	struct module_notes_attrs *notes_attrs;
+	// struct module_notes_attrs *notes_attrs;
 #endif
 
 	/* Per-cpu data. */
@@ -313,14 +315,14 @@ struct module {
 
 	/* The command line arguments (may be mangled).  People like
 	   keeping pointers to this stuff */
-	char *args;
+	// char *args;
 #ifdef CONFIG_MARKERS
-	struct marker *markers;
-	unsigned int num_markers;
+	// struct marker *markers;
+	// unsigned int num_markers;
 #endif
 #ifdef CONFIG_TRACEPOINTS
-	struct tracepoint *tracepoints;
-	unsigned int num_tracepoints;
+	// struct tracepoint *tracepoints;
+	// unsigned int num_tracepoints;
 #endif
 
 #ifdef CONFIG_MODULE_UNLOAD
@@ -330,8 +332,6 @@ struct module {
 	/* Who is waiting for us to be unloaded */
 	struct task_struct *waiter;
 
-	/* Destruction function. */
-	void (*exit) (void);
 
 #ifdef CONFIG_SMP
 	char *refptr;

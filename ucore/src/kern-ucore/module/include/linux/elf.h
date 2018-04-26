@@ -178,6 +178,14 @@ typedef struct elf32_sym {
 	Elf32_Half st_shndx;
 } Elf32_Sym;
 
+typedef struct symtab_s {
+	uint32_t st_name;
+	uint8_t st_info;
+	uint8_t st_other;
+	uint16_t st_shndx;
+	uint64_t st_value;
+	uint64_t st_size;
+} Symtab_S;
 typedef struct elf64_sym {
 	Elf64_Word st_name;	/* Symbol name, index in string tbl */
 	unsigned char st_info;	/* Type and binding attributes */
