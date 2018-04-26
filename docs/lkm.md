@@ -52,8 +52,8 @@
 
     * 其中`.modinfo` section只包含license信息：
         
-        Hex dump of section '.modinfo':
-        0x00000000 6c696365 6e73653d 47504c00          license=GPL.
+          Hex dump of section '.modinfo':
+            0x00000000 6c696365 6e73653d 47504c00          license=GPL.
 
     TODO:在`mod.c`中我发现
 
@@ -64,14 +64,14 @@
 * 加载LKM
     * 在Makefile中修改sfsimg的生成规则，将`hello.ko`文件加入文件系统：
         
-        @cp -r $(TOPDIR)/src/kmod/hello.ko $(TMPSFS)/lib/modules/
+           @cp -r $(TOPDIR)/src/kmod/hello.ko $(TMPSFS)/lib/modules/
     
     * 尝试在ucore+中通过`insmod`加载`hello.ko`：`insmod hello`。发现：`simplify_symbols: Unknown symbol printk`等，即`printk,driver_register,bus_register`三个符号找不到。检查`hello.ko`的符号表发现其中这三个符号确实没有链接上任何值：
 
-        23: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND printk
-        24: 00000040    60 OBJECT  GLOBAL DEFAULT    9 test_bus_type
-        25: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND driver_register
-        26: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND bus_register
+            23: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND printk
+            24: 00000040    60 OBJECT  GLOBAL DEFAULT    9 test_bus_type
+            25: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND driver_register
+            26: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND bus_register
     * 将所有引用上述三个符号的语句全部注释掉后，`hello.ko`的符号表中不再包含它们。`hello.ko`能够正常加载和卸载了。加载后通过`lsmod`命令得到`Modules linked in: hello`，表明内核已经将`hello.ko`加入已加载模块列表中。
     * 研究上面三个符号在LKM中应该怎么处理。我猜LKM在加载的时候可能还需要考虑内核接口提供的符号，使其能够链接上内核中的功能，而不应该指望LKM中包含完备的符号引用关系
         *  分析Linux下的LKM `fat.ko`，发现其符号表中存在大量未完成解析的符号（包括`printk`：`317: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printk`），这意味着这些符号的解析确实是在LKM加载时才动态完成的（类似于动态链接）
