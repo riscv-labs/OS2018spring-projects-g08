@@ -131,7 +131,7 @@ typedef pte_t pte_perm_t;
 
 static inline void ptep_map(pte_t * ptep, uintptr_t pa)
 {
-	*ptep = (pa | PTE_V);
+	*ptep = (pa >> (PGSHIFT - PTE_PPN_SHIFT) | PTE_V);
 }
 
 static inline void ptep_unmap(pte_t * ptep)
@@ -161,7 +161,7 @@ static inline int ptep_s_write(pte_t * ptep)
 
 static inline int ptep_u_read(pte_t * ptep)
 {
-	return ((*ptep & PTE_U) & (*pte & PTE_R));
+	return ((*ptep & PTE_U) & (*ptep & PTE_R));
 }
 
 static inline int ptep_u_write(pte_t * ptep)
@@ -171,12 +171,12 @@ static inline int ptep_u_write(pte_t * ptep)
 
 static inline void ptep_set_s_read(pte_t * ptep)
 {
-    *pte |= PTE_R;
+    *ptep |= PTE_R;
 }
 
 static inline void ptep_set_s_write(pte_t * ptep)
 {
-    *pte |= PTE_W;
+    *ptep |= PTE_W;
 }
 
 static inline void ptep_set_u_read(pte_t * ptep)
@@ -191,7 +191,7 @@ static inline void ptep_set_u_write(pte_t * ptep)
 
 static inline void ptep_unset_s_read(pte_t * ptep)
 {
-    *pte &= (~PTE_R);
+    *ptep &= (~PTE_R);
 }
 
 static inline void ptep_unset_s_write(pte_t * ptep)
@@ -201,7 +201,7 @@ static inline void ptep_unset_s_write(pte_t * ptep)
 
 static inline void ptep_unset_u_read(pte_t * ptep)
 {
-    *pte &= (~PTE_R);
+    *ptep &= (~PTE_R);
 }
 
 static inline void ptep_unset_u_write(pte_t * ptep)

@@ -57,4 +57,4 @@ int kprintf(const char *fmt, ...)
 	return cnt;
 }
 
-//EXPORT_SYMBOL(kprintf);
+EXPORT_SYMBOL(kprintf);

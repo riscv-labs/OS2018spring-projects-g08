@@ -46,6 +46,21 @@
 #define KSTACKPAGE          2                           // # of pages in kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
 
+#define USERTOP             0x80000000
+#define USTACKTOP           USERTOP
+#define USTACKPAGE          256                         // # of pages in user stack
+#define USTACKSIZE          (USTACKPAGE * PGSIZE)       // sizeof user stack
+
+#define USERBASE            0x00200000
+#define UTEXT               0x00800000                  // where user programs generally begin
+#define USTAB               USERBASE                    // the location of the user STABS data structure
+
+#define USER_ACCESS(start, end)                     \
+(USERBASE <= (start) && (start) < (end) && (end) <= USERTOP)
+
+#define KERN_ACCESS(start, end)                     \
+(KERNBASE <= (start) && (start) < (end) && (end) <= KERNTOP)
+
 #ifndef __ASSEMBLER__
 
 #include <types.h>
@@ -64,8 +79,8 @@ struct Page {
 	unsigned int property;	// used in buddy system, stores the order (the X in 2^X) of the continuous memory block
 	int zone_num;		// used in buddy system, the No. of zone which the page belongs to
     list_entry_t page_link;         // free list link
-    swap_entry_t index;	// stores a swapped-out page identifier
-	list_entry_t swap_link;	// swap hash link
+    //swap_entry_t index;	// stores a swapped-out page identifier
+	//list_entry_t swap_link;	// swap hash link
 };
 
 /* Flags describing the status of a page frame */

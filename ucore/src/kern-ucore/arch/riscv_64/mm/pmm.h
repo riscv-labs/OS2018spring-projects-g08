@@ -34,20 +34,22 @@ struct pmm_manager {
 // struct proc_struct;
 
 extern const struct pmm_manager *pmm_manager;
-extern pde_t *boot_pgdir;
+extern pgd_t *boot_pgdir;
 extern uintptr_t boot_cr3;
 
 
 void check_pgdir(void);
 void check_boot_pgdir(void);
+void check_alloc_page(void);
+void check_boot_pgdir(void);
 
 void pmm_init(void);
 void pmm_init_ap(void);
-void boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size,
-                             uintptr_t pa, uint32_t perm)
+void boot_map_segment(pgd_t *pgdir, uintptr_t la, size_t size,
+                             uintptr_t pa, uint32_t perm);
 
 struct Page *alloc_pages(size_t n);
-void *boot_alloc_page(void)
+void *boot_alloc_page(void);
 void free_pages(struct Page *base, size_t n);
 size_t nr_used_pages(void);
 size_t nr_free_pages(void);
@@ -59,24 +61,24 @@ pgd_t *get_pgd(pgd_t * pgdir, uintptr_t la, bool create);
 pud_t *get_pud(pgd_t * pgdir, uintptr_t la, bool create);
 pmd_t *get_pmd(pgd_t * pgdir, uintptr_t la, bool create);
 pte_t *get_pte(pgd_t * pgdir, uintptr_t la, bool create);
-struct Page *get_page(pde_t *pgdir, uintptr_t la, pte_t **ptep_store);
-void page_remove(pde_t *pgdir, uintptr_t la);
-int page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm);
+struct Page *get_page(pgd_t *pgdir, uintptr_t la, pte_t **ptep_store);
+void page_remove(pgd_t *pgdir, uintptr_t la);
+int page_insert(pgd_t *pgdir, struct Page *page, uintptr_t la, pte_perm_t perm);
 
 // void load_rsp0(uintptr_t rsp0);
-// void set_pgdir(struct proc_struct *proc, pde_t * pgdir);
+// void set_pgdir(struct proc_struct *proc, pgd_t * pgdir);
 // void load_pgdir(struct proc_struct *proc);
-// void map_pgdir(pde_t * pgdir);
+// void map_pgdir(pgd_t * pgdir);
 
 
-void tlb_update(pde_t * pgdir, uintptr_t la);
-void tlb_invalidate(pde_t * pgdir, uintptr_t la);
+void tlb_update(pgd_t * pgdir, uintptr_t la);
+void tlb_invalidate(pgd_t * pgdir, uintptr_t la);
 void tlb_invalidate_user(void);
 
-// struct Page *pgdir_alloc_page(pde_t * pgdir, uintptr_t la, uint32_t perm);
-// void unmap_range(pde_t * pgdir, uintptr_t start, uintptr_t end);
-// void exit_range(pde_t * pgdir, uintptr_t start, uintptr_t end);
-// int copy_range(pde_t * to, pde_t * from, uintptr_t start, uintptr_t end,
+// struct Page *pgdir_alloc_page(pgd_t * pgdir, uintptr_t la, uint32_t perm);
+// void unmap_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
+// void exit_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
+// int copy_range(pgd_t * to, pgd_t * from, uintptr_t start, uintptr_t end,
 // 	       bool share);
 
 void print_pgdir(void);
@@ -147,7 +149,7 @@ static inline struct Page *pte2page(pte_t pte) {
     return pa2page(PTE_ADDR(pte));
 }
 
-static inline struct Page *pde2page(pde_t pde) {
+static inline struct Page *pde2page(pgd_t pde) {
     return pa2page(PDE_ADDR(pde));
 }
 

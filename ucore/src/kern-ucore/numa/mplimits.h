@@ -26,7 +26,7 @@
 #define MAX_NUMA_MEM_ZONES 16
 
 #ifndef CACHELINE
-#warning CACHELINE not defined
+//#warning CACHELINE not defined
 #define CACHELINE 64
 #endif
 

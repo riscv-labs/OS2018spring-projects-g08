@@ -29,7 +29,7 @@ uint64_t va_pa_offset;
 const size_t nbase = DRAM_BASE / PGSIZE;
 
 // virtual address of boot-time page directory
-pde_t *boot_pgdir = NULL;
+pgd_t *boot_pgdir = NULL;
 // physical address of boot-time page directory
 uintptr_t boot_cr3;
 
@@ -49,7 +49,7 @@ const struct pmm_manager *pmm_manager;
  * always available at virtual address PGADDR(PDX(VPT), PDX(VPT), 0), to which
  * vpd is set bellow.
  * */
-pde_t *const vpd = (pde_t *)PGADDR(PDX1(VPT), PDX1(VPT), PDX1(VPT), 0);
+pgd_t *const vpd = (pgd_t *)PGADDR(PDX1(VPT), PDX1(VPT), PDX1(VPT), 0);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
@@ -81,7 +81,7 @@ static void init_memmap(struct Page *base, size_t n) {
 // /**
 //  * set_pgdir - save the physical address of the current pgdir
 //  */
-// void set_pgdir(struct proc_struct *proc, pde_t * pgdir)
+// void set_pgdir(struct proc_struct *proc, pgd_t * pgdir)
 // {
 // 	assert(proc != NULL);
 // 	proc->cr3 = PADDR(pgdir);
@@ -101,7 +101,7 @@ static void init_memmap(struct Page *base, size_t n) {
 // /**
 //  * map_pgdir - map the current pgdir @pgdir to its own address space
 //  */
-// void map_pgdir(pde_t * pgdir)
+// void map_pgdir(pgd_t * pgdir)
 // {
 // 	pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
 // }
@@ -213,7 +213,7 @@ static void enable_paging(void) {
 //  size: memory size
 //  pa:   physical address of this memory
 //  perm: permission of this memory
-void boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size,
+void boot_map_segment(pgd_t *pgdir, uintptr_t la, size_t size,
                              uintptr_t pa, uint32_t perm) {
     assert(PGOFF(la) == PGOFF(pa));
     size_t n = ROUNDUP(size + PGOFF(la), PGSIZE) / PGSIZE;
@@ -283,7 +283,7 @@ void pmm_init(void) {
 
     // IMPORTANT !!!
     // Map last page to make SBI happy
-    // pde_t *sptbr = KADDR(read_csr(sptbr) << PGSHIFT);
+    // pgd_t *sptbr = KADDR(read_csr(sptbr) << PGSHIFT);
     // pte_t *sbi_pte = get_pte(sptbr, 0xFFFFFFFF, 0);
     // boot_map_segment(boot_pgdir, (uintptr_t)(-PGSIZE), PGSIZE,
     //                  PTE_ADDR(*sbi_pte), READ_EXEC);
@@ -309,18 +309,18 @@ void pmm_init_ap(void)
 
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
-void tlb_update(pde_t * pgdir, uintptr_t la)
+void tlb_update(pgd_t * pgdir, uintptr_t la)
 {
 	tlb_invalidate(pgdir, la);
 }
 
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
-void tlb_invalidate(pde_t *pgdir, uintptr_t la) {
+void tlb_invalidate(pgd_t *pgdir, uintptr_t la) {
     asm volatile("sfence.vma %0" : : "r"(la));
 }
 
-static void check_alloc_page(void) {
+void check_alloc_page(void) {
     pmm_manager->check();
     kprintf("check_alloc_page() succeeded!\n");
 }
@@ -376,7 +376,7 @@ void check_pgdir(void) {
     kprintf("check_pgdir() succeeded!\n");
 }
 
-static void check_boot_pgdir(void) {
+void check_boot_pgdir(void) {
     // TODO: I don't know what to do with this.
     // The check doesn't make sense at all.
     // pte_t *ptep;
