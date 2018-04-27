@@ -1,7 +1,7 @@
 #
 # Toolchain setup
 #
-CROSS_COMPILE=""
+CROSS_COMPILE="riscv64-unknown-elf"
 ADDITIONAL_CFLAGS=""
 ADDITIONAL_LDFLAGS=""
 

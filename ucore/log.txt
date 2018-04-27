@@ -1,0 +1,178 @@
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/mm
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/libs
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/sysconf
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/numa
+make[3]: Nothing to be done for 'all'.
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/debug
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/driver
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/init
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/mm
+DEP pmm.c
+CC pmm.c
+In file included from /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/mm/pmm.h:5:0,
+                 from /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/mm/buddy_pmm.h:4,
+                 from pmm.c:1:
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h: In function 'atomic_cmpxchg':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h:218:44: warning: unused parameter 'v' [-Wunused-parameter]
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+                                            ^
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h:218:51: warning: unused parameter 'old' [-Wunused-parameter]
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+                                                   ^~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h:218:60: warning: unused parameter 'new' [-Wunused-parameter]
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+                                                            ^~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h: In function 'atomic_xchg':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h:224:41: warning: unused parameter 'v' [-Wunused-parameter]
+ static inline int atomic_xchg(atomic_t *v, int new)
+                                         ^
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/atomic.h:224:48: warning: unused parameter 'new' [-Wunused-parameter]
+ static inline int atomic_xchg(atomic_t *v, int new)
+                                                ^~~
+In file included from pmm.c:7:0:
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h: In function 'sbi_remote_sfence_vma':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h:86:21: warning: unused parameter 'start' [-Wunused-parameter]
+       unsigned long start,
+                     ^~~~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h:87:21: warning: unused parameter 'size' [-Wunused-parameter]
+       unsigned long size)
+                     ^~~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h: In function 'sbi_remote_sfence_vma_asid':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h:93:26: warning: unused parameter 'start' [-Wunused-parameter]
+            unsigned long start,
+                          ^~~~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h:94:26: warning: unused parameter 'size' [-Wunused-parameter]
+            unsigned long size,
+                          ^~~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/sbi.h:95:26: warning: unused parameter 'asid' [-Wunused-parameter]
+            unsigned long asid)
+                          ^~~~
+In file included from /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/numa/mp.h:9:0,
+                 from pmm.c:15:
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/spinlock.h: In function 'spinlock_acquire':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/spinlock.h:13:48: warning: unused parameter 'lock' [-Wunused-parameter]
+ static inline void spinlock_acquire(spinlock_t lock)
+                                                ^~~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/spinlock.h: In function 'spinlock_acquire_try':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/spinlock.h:17:51: warning: unused parameter 'lock' [-Wunused-parameter]
+ static inline int spinlock_acquire_try(spinlock_t lock)
+                                                   ^~~~
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/spinlock.h: In function 'spinlock_release':
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/libs/spinlock.h:22:48: warning: unused parameter 'lock' [-Wunused-parameter]
+ static inline void spinlock_release(spinlock_t lock)
+                                                ^~~~
+pmm.c: In function 'init_pmm_manager':
+pmm.c:56:17: warning: unused variable 'kern_entry' [-Wunused-variable]
+     extern char kern_entry[];
+                 ^~~~~~~~~~
+pmm.c: In function 'tlb_invalidate':
+pmm.c:320:28: warning: unused parameter 'pgdir' [-Wunused-parameter]
+ void tlb_invalidate(pgd_t *pgdir, uintptr_t la) {
+                            ^~~~~
+pmm.c: In function 'check_boot_pgdir':
+pmm.c:398:12: warning: unused variable 'pte' [-Wunused-variable]
+     pte_t *pte = get_pte(boot_pgdir, 0x100, 0);
+            ^~~
+pmm.c: In function 'get_pgtable_items':
+pmm.c:457:59: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         while (start < right && (table[start] & PTE_USER) == perm) {
+                                                           ^~
+pmm.c:439:37: warning: unused parameter 'left' [-Wunused-parameter]
+ static int get_pgtable_items(size_t left, size_t right, size_t start,
+                                     ^~~~
+LD /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel/arch/riscv_64/mm/builtin.o
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/numa
+Enter /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/trap
+Building uCore Kernel for riscv_64
+Linking uCore
+Making /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel.img
+cd /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/../riscv-pk && rm -rf build && mkdir build && cd build && ../configure --prefix= --host=riscv64-unknown-elf --with-payload=/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel/kernel-riscv_64.elf --disable-fp-emulation --enable-logo && make && cp bbl /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel.img
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... riscv64-unknown-elf
+checking for riscv64-unknown-elf-gcc... riscv64-unknown-elf-gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... yes
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether riscv64-unknown-elf-gcc accepts -g... yes
+checking for riscv64-unknown-elf-gcc option to accept ISO C89... none needed
+checking for riscv64-unknown-elf-g++... riscv64-unknown-elf-g++
+checking whether we are using the GNU C++ compiler... yes
+checking whether riscv64-unknown-elf-g++ accepts -g... yes
+checking for riscv64-unknown-elf-ar... riscv64-unknown-elf-ar
+checking for riscv64-unknown-elf-ranlib... riscv64-unknown-elf-ranlib
+checking for riscv64-unknown-elf-readelf... riscv64-unknown-elf-readelf
+checking for riscv64-unknown-elf-objcopy... riscv64-unknown-elf-objcopy
+checking for a BSD-compatible install... /usr/bin/install -c
+checking how to run the C preprocessor... riscv64-unknown-elf-gcc -E
+checking for grep that handles long lines and -e... /bin/grep
+checking for egrep... /bin/grep -E
+checking for ANSI C header files... yes
+configure: configuring default subproject : bbl
+configure: configuring default subproject : dummy_payload
+configure: configuring default subproject : machine
+configure: configuring default subproject : util
+configure: creating ./config.status
+config.status: creating bbl.mk
+config.status: creating dummy_payload.mk
+config.status: creating machine.mk
+config.status: creating util.mk
+config.status: creating Makefile
+config.status: creating config.h
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../bbl/logo.c
+if riscv64-unknown-elf-readelf -h /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel/kernel-riscv_64.elf 2> /dev/null > /dev/null; then riscv64-unknown-elf-objcopy -O binary /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel/kernel-riscv_64.elf bbl_payload; else cp /home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel/kernel-riscv_64.elf bbl_payload; fi
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../bbl/payload.S
+cat ../bbl/riscv_logo.txt | sed 's/$/\r/' > bbl_logo_file
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../bbl/raw_logo.S
+riscv64-unknown-elf-ar rcv libbbl.a logo.o payload.o raw_logo.o
+a - logo.o
+a - payload.o
+a - raw_logo.o
+riscv64-unknown-elf-ranlib libbbl.a
+echo "int _dummy_payload( int arg ) { return arg; }" > _dummy_payload.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c _dummy_payload.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../dummy_payload/dummy_entry.S
+riscv64-unknown-elf-ar rcv libdummy_payload.a _dummy_payload.o dummy_entry.o
+a - _dummy_payload.o
+a - dummy_entry.o
+riscv64-unknown-elf-ranlib libdummy_payload.a
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/fdt.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/mtrap.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/minit.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/htif.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/emulation.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/muldiv_emulation.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/uart.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/uart16550.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/finisher.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/misaligned_ldst.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/flush_icache.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../machine/mentry.S
+riscv64-unknown-elf-ar rcv libmachine.a fdt.o mtrap.o minit.o htif.o emulation.o muldiv_emulation.o uart.o uart16550.o finisher.o misaligned_ldst.o flush_icache.o mentry.o
+a - fdt.o
+a - mtrap.o
+a - minit.o
+a - htif.o
+a - emulation.o
+a - muldiv_emulation.o
+a - uart.o
+a - uart16550.o
+a - finisher.o
+a - misaligned_ldst.o
+a - flush_icache.o
+a - mentry.o
+riscv64-unknown-elf-ranlib libmachine.a
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../util/snprintf.c
+riscv64-unknown-elf-gcc -MMD -MP -Wall -Werror -D__NO_INLINE__ -mcmodel=medany -O2 -std=gnu99 -Wno-unused -Wno-attributes -fno-delete-null-pointer-checks  -DBBL_PAYLOAD=\"bbl_payload\" -DBBL_LOGO_FILE=\"bbl_logo_file\" -I. -I../bbl -I../dummy_payload -I../machine -I../util -c ../util/string.c
+Makefile:302: recipe for target 'string.o' failed
+make[3]: *** [string.o] Interrupt
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/arch/riscv_64/Makefile.image:12: recipe for target '/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel.img' failed
+make[2]: *** [/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/obj/kernel.img] Interrupt
+/home/lucheng/Desktop/OS2018spring-projects-g08/ucore/src/kern-ucore/Makefile.build:54: recipe for target 'all' failed
+make[1]: *** [all] Interrupt
+Makefile:124: recipe for target 'kernel' failed
+make: *** [kernel] Interrupt

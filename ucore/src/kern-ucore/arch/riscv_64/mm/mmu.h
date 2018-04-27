@@ -176,7 +176,7 @@ static inline void ptep_set_s_read(pte_t * ptep)
 
 static inline void ptep_set_s_write(pte_t * ptep)
 {
-    *ptep |= PTE_W;
+    *ptep |= PTE_W | PTE_R;
 }
 
 static inline void ptep_set_u_read(pte_t * ptep)
@@ -186,12 +186,22 @@ static inline void ptep_set_u_read(pte_t * ptep)
 
 static inline void ptep_set_u_write(pte_t * ptep)
 {
-	*ptep |= PTE_W | PTE_U;
+	*ptep |= PTE_W | PTE_R | PTE_U;
+}
+
+static inline void ptep_set_u(pte_t * ptep)
+{
+	*ptep |= PTE_U;
+}
+
+static inline void ptep_unset_u(pte_t * ptep)
+{
+	*ptep &= ~PTE_U;
 }
 
 static inline void ptep_unset_s_read(pte_t * ptep)
 {
-    *ptep &= (~PTE_R);
+    *ptep &= (~(PTE_R | PTE_W));
 }
 
 static inline void ptep_unset_s_write(pte_t * ptep)
@@ -201,12 +211,12 @@ static inline void ptep_unset_s_write(pte_t * ptep)
 
 static inline void ptep_unset_u_read(pte_t * ptep)
 {
-    *ptep &= (~PTE_R);
+    *ptep &= (~(PTE_R | PTE_W | PTE_U));
 }
 
 static inline void ptep_unset_u_write(pte_t * ptep)
 {
-	*ptep &= (~PTE_W);
+	*ptep &= (~(PTE_W | PTE_U));
 }
 
 static inline pte_perm_t ptep_get_perm(pte_t * ptep, pte_perm_t perm)
@@ -216,6 +226,9 @@ static inline pte_perm_t ptep_get_perm(pte_t * ptep, pte_perm_t perm)
 
 static inline void ptep_set_perm(pte_t * ptep, pte_perm_t perm)
 {
+	if (perm & PTE_W) {
+		perm |= PTE_R;
+	}
 	*ptep |= perm;
 }
 
@@ -226,6 +239,9 @@ static inline void ptep_copy(pte_t * to, pte_t * from)
 
 static inline void ptep_unset_perm(pte_t * ptep, pte_perm_t perm)
 {
+	if (perm & PTE_W) {
+		perm |= PTE_R;
+	}
 	*ptep &= (~perm);
 }
 

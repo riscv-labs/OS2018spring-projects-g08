@@ -30,10 +30,11 @@ int kern_init(void) {
     print_kerninfo();
 
 	/* Only to initialize lcpu_count. */
-	//mp_init();
+	// mp_init();
 
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
+    // pmm_init_ap();
 
     pic_init();  // init interrupt controller
     idt_init();  // init interrupt descriptor table

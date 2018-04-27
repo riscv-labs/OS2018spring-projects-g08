@@ -112,7 +112,7 @@ static void init_memmap(struct Page *base, size_t n) {
 // alloc_pages - call pmm->alloc_pages to allocate a continuous n*PAGESIZE
 // memory
 struct Page *alloc_pages(size_t n) {
-	struct Page *page;
+	struct Page *page = NULL;
 	bool intr_flag;
 #ifdef UCONFIG_SWAP
 try_again:
@@ -128,7 +128,7 @@ try_again:
 	}
 #endif
 
-	get_cpu_var(used_pages) += n;
+	// get_cpu_var(used_pages) += n;
 	return page;
 }
 
@@ -140,7 +140,7 @@ void free_pages(struct Page *base, size_t n) {
         pmm_manager->free_pages(base, n);
     }
     local_intr_restore(intr_flag);
-    get_cpu_var(used_pages) -= n;
+    // get_cpu_var(used_pages) -= n;
 }
 
 size_t nr_used_pages(void)
@@ -351,7 +351,7 @@ void check_pgdir(void) {
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
     assert(*ptep & PTE_U);
     assert(*ptep & PTE_W);
-    assert(boot_pgdir[0] & PTE_U);
+    //assert(boot_pgdir[0] & PTE_U);
     assert(page_ref(p2) == 1);
 
     assert(page_insert(boot_pgdir, p1, PGSIZE, 0) == 0);
