@@ -6,6 +6,230 @@
 /* Atomic operations that C can't guarantee us. Useful for resource counting
  * etc.. */
 
+typedef struct {
+	volatile int counter;
+} atomic_t;
+
+static inline int atomic_read(const atomic_t * v)
+    __attribute__ ((always_inline));
+static inline void atomic_set(atomic_t * v, int i)
+    __attribute__ ((always_inline));
+static inline void atomic_add(atomic_t * v, int i)
+    __attribute__ ((always_inline));
+static inline void atomic_sub(atomic_t * v, int i)
+    __attribute__ ((always_inline));
+static inline void atomic_inc(atomic_t * v) __attribute__ ((always_inline));
+static inline void atomic_dec(atomic_t * v) __attribute__ ((always_inline));
+static inline bool atomic_inc_test_zero(atomic_t * v)
+    __attribute__ ((always_inline));
+static inline bool atomic_dec_test_zero(atomic_t * v)
+    __attribute__ ((always_inline));
+static inline int atomic_add_return(atomic_t * v, int i)
+    __attribute__ ((always_inline));
+static inline int atomic_sub_return(atomic_t * v, int i)
+    __attribute__ ((always_inline));
+
+
+//TODO: risc-v
+
+/*
+ * Atomic operations that C can't guarantee us.  Useful for
+ * resource counting etc..
+ */
+
+#define ATOMIC_INIT(i)	{ (i) }
+
+/**
+ * atomic_read - read atomic variable
+ * @v: pointer of type atomic_t
+ *
+ * Atomically reads the value of @v.
+ */
+static inline int atomic_read(const atomic_t *v)
+{
+	return (*(volatile int *)&(v)->counter);
+}
+
+/**
+ * atomic_set - set atomic variable
+ * @v: pointer of type atomic_t
+ * @i: required value
+ *
+ * Atomically sets the value of @v to @i.
+ */
+static inline void atomic_set(atomic_t *v, int i)
+{
+	v->counter = i;
+}
+
+/**
+ * atomic_add - add integer to atomic variable
+ * @i: integer value to add
+ * @v: pointer of type atomic_t
+ *
+ * Atomically adds @i to @v.
+ */
+static inline void atomic_add(atomic_t *v, int i)
+{
+	// asm volatile(LOCK_PREFIX "addl %1,%0"
+	// 	     : "+m" (v->counter)
+	// 	     : "ir" (i));
+    v->counter += i;
+}
+
+/**
+ * atomic_sub - subtract integer from atomic variable
+ * @i: integer value to subtract
+ * @v: pointer of type atomic_t
+ *
+ * Atomically subtracts @i from @v.
+ */
+static inline void atomic_sub(atomic_t *v, int i)
+{
+	// asm volatile(LOCK_PREFIX "subl %1,%0"
+	// 	     : "+m" (v->counter)
+	// 	     : "ir" (i));
+    v->counter -= i;
+}
+
+
+/**
+ * atomic_sub_and_test - subtract value from variable and test result
+ * @i: integer value to subtract
+ * @v: pointer of type atomic_t
+ *
+ * Atomically subtracts @i from @v and returns
+ * true if the result is zero, or false for all
+ * other cases.
+ */
+static inline int atomic_sub_and_test(int i, atomic_t *v)
+{
+	// unsigned char c;
+
+	// asm volatile(LOCK_PREFIX "subl %2,%0; sete %1"
+	// 	     : "+m" (v->counter), "=qm" (c)
+	// 	     : "ir" (i) : "memory");
+	// return c;
+    v->counter -= i;
+    if (v->counter) return 0;
+    else return 1;
+}
+
+
+/**
+ * atomic_inc - increment atomic variable
+ * @v: pointer of type atomic_t
+ *
+ * Atomically increments @v by 1.
+ */
+static inline void atomic_inc(atomic_t *v)
+{
+	// asm volatile(LOCK_PREFIX "incl %0"
+	// 	     : "+m" (v->counter));
+    v->counter++;
+}
+
+
+/**
+ * atomic_dec - decrement atomic variable
+ * @v: pointer of type atomic_t
+ *
+ * Atomically decrements @v by 1.
+ */
+static inline void atomic_dec(atomic_t *v)
+{
+	// asm volatile(LOCK_PREFIX "decl %0"
+	// 	     : "+m" (v->counter));
+    v->counter--;
+}
+
+
+/**
+ * atomic_dec_and_test - decrement and test
+ * @v: pointer of type atomic_t
+ *
+ * Atomically decrements @v by 1 and
+ * returns true if the result is 0, or false for all other
+ * cases.
+ */
+static inline bool atomic_dec_test_zero(atomic_t * v)
+{
+	// unsigned char c;
+
+	// asm volatile(LOCK_PREFIX "decl %0; sete %1"
+	// 	     : "+m" (v->counter), "=qm" (c)
+	// 	     : : "memory");
+	// return c != 0;
+    v->counter -= 1;
+    if (v->counter) return 0;
+    else return 1;
+}
+
+/**
+ * atomic_inc_and_test - increment and test
+ * @v: pointer of type atomic_t
+ *
+ * Atomically increments @v by 1
+ * and returns true if the result is zero, or false for all
+ * other cases.
+ */
+static inline bool atomic_inc_test_zero(atomic_t * v)
+{
+	// unsigned char c;
+
+	// asm volatile(LOCK_PREFIX "incl %0; sete %1"
+	// 	     : "+m" (v->counter), "=qm" (c)
+	// 	     : : "memory");
+	// return c != 0;
+    v->counter += 1;
+    if (v->counter) return 0;
+    else return 1;
+}
+
+/* *
+ * atomic_add_return - add integer and return
+ * @i:  integer value to add
+ * @v:  pointer of type atomic_t
+ *
+ * Atomically adds @i to @v and returns @i + @v
+ * Requires Modern 486+ processor
+ * */
+static inline int atomic_add_return(atomic_t * v, int i)
+{
+	// int __i = i;
+	// asm volatile ("xaddl %0, %1":"+r" (i), "+m"(v->counter)::"memory");
+	// return i + __i;
+    v->counter += i;
+    return (v->counter);
+}
+
+/* *
+ * atomic_sub_return - subtract integer and return
+ * @v:  pointer of type atomic_t
+ * @i:  integer value to subtract
+ *
+ * Atomically subtracts @i from @v and returns @v - @i
+ * */
+static inline int atomic_sub_return(atomic_t * v, int i)
+{
+	return atomic_add_return(v, -i);
+}
+
+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+{
+	// return cmpxchg(&v->counter, old, new);
+    return 0;
+}
+
+static inline int atomic_xchg(atomic_t *v, int new)
+{
+	// return xchg(&v->counter, new);
+    return 0;
+}
+
+
+
+//TODO bit op on MP
 static inline void set_bit(int nr, volatile void *addr)
     __attribute__((always_inline));
 static inline void clear_bit(int nr, volatile void *addr)
