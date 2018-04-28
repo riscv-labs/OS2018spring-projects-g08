@@ -36,13 +36,13 @@ int kern_init(void) {
 	mp_init();
 
 	size_t nr_used_pages_store = nr_used_pages();
-	kprintf("1:nr_used_pages: %d\n", nr_used_pages);
+	kprintf("1:nr_used_pages: %d\n", nr_used_pages_store);
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
     // pmm_init_ap();
 
     nr_used_pages_store = nr_used_pages();
-	kprintf("2:nr_used_pages: %d\n", nr_used_pages);
+	kprintf("2:nr_used_pages: %d\n", nr_used_pages_store);
 
     pic_init();  // init interrupt controller
     idt_init();  // init interrupt descriptor table
