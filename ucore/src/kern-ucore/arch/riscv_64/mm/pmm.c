@@ -128,7 +128,7 @@ try_again:
 	}
 #endif
 
-	// get_cpu_var(used_pages) += n;
+	get_cpu_var(used_pages) += n;
 	return page;
 }
 
@@ -140,7 +140,7 @@ void free_pages(struct Page *base, size_t n) {
         pmm_manager->free_pages(base, n);
     }
     local_intr_restore(intr_flag);
-    // get_cpu_var(used_pages) -= n;
+    get_cpu_var(used_pages) -= n;
 }
 
 size_t nr_used_pages(void)
@@ -295,8 +295,8 @@ void pmm_init(void) {
     check_boot_pgdir();
 
     // print_pgdir();
-
-    // slab_init();
+    kprintf("begin slab_init\n");
+    slab_init();
 }
 
 void pmm_init_ap(void)

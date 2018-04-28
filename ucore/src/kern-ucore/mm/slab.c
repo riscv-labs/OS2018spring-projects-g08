@@ -123,6 +123,7 @@ void slab_init(void)
 	size_t i;
 	//the align bit for obj in slab. 2^n could be better for performance
 	size_t align = 16;
+	kprintf("SLAB_CACHE_NUM:%d\n",SLAB_CACHE_NUM);
 	for (i = 0; i < SLAB_CACHE_NUM; i++) {
 		init_kmem_cache(slab_cache + i, 1 << (i + MIN_SIZE_ORDER),
 				align);
@@ -139,16 +140,26 @@ size_t slab_allocated(void)
 	local_intr_save(intr_flag);
 	{
 		for (i = 0; i < SLAB_CACHE_NUM; i++) {
+			kprintf("%d\n",i);
 			kmem_cache_t *cachep = slab_cache + i;
+			kprintf("1\n");
 			list_entry_t *list, *le;
 			list = le = &(cachep->slabs_full);
+			kprintf("2\n");
 			while ((le = list_next(le)) != list) {
+				kprintf("3\n");
 				total += cachep->num * cachep->objsize;
+				kprintf("4\n");
 			}
+			kprintf("4.5\n");			
 			list = le = &(cachep->slabs_notfull);
+			kprintf("5\n");
 			while ((le = list_next(le)) != list) {
+				kprintf("6\n");
 				slab_t *slabp = le2slab(le, slab_link);
+				kprintf("7\n");
 				total += slabp->inuse * cachep->objsize;
+				kprintf("8\n");
 			}
 		}
 	}
@@ -248,6 +259,7 @@ static inline size_t getorder(size_t n)
 // init_kmem_cache - initial a slab_cache cachep according to the obj with the size = objsize
 static void init_kmem_cache(kmem_cache_t * cachep, size_t objsize, size_t align)
 {
+	kprintf("begin init_kmem_cache\n");
 	list_init(&(cachep->slabs_full));
 	list_init(&(cachep->slabs_notfull));
 	spinlock_init(&cachep->lock);
@@ -275,6 +287,7 @@ static void init_kmem_cache(kmem_cache_t * cachep, size_t objsize, size_t align)
 	} else {
 		cachep->offset = mgmt_size;
 	}
+	kprintf("end init_kmem_cache\n");
 }
 
 static void *kmem_cache_alloc(kmem_cache_t * cachep);
@@ -508,6 +521,7 @@ static inline void check_slab_empty(void)
 
 void check_slab(void)
 {
+	kprintf("begin check_slab\n");
 	int i;
 	void *v0, *v1;
 
