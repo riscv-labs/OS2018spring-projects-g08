@@ -33,12 +33,13 @@ int kern_init(void) {
 	/* Only to initialize lcpu_count. */
 	mp_init();
     
+    size_t nr_used_pages_store = nr_used_pages();
+    kprintf("before nr_used_pages_store:%d\n", nr_used_pages_store);
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
     // pmm_init_ap();
-    size_t slab_allocated_store = slab_allocated();
-    kprintf("slab_allocated_store: %d\n", slab_allocated_store);
-
+    nr_used_pages_store = nr_used_pages();
+    kprintf("end pmm, nr_used_pages_store:%d\n", nr_used_pages_store);
     pic_init();  // init interrupt controller
     idt_init();  // init interrupt descriptor table
 
