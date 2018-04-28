@@ -377,29 +377,26 @@ void check_pgdir(void) {
 }
 
 void check_boot_pgdir(void) {
-    // TODO: I don't know what to do with this.
-    // The check doesn't make sense at all.
-    // pte_t *ptep;
-    // int i;
-    // for (i = KERNBASE / PGSIZE; i < npage; i += PGSIZE) {
-    //     assert((ptep = get_pte(boot_pgdir, (uintptr_t)KADDR(i), 0)) != NULL);
-    //     assert(PTE_ADDR(*ptep) == i);
-    // }
+    pte_t *ptep;
+    int i;
+    for (i = ROUNDDOWN(KERNBASE, PGSIZE); i < npage * PGSIZE; i += PGSIZE) {
+        assert((ptep = get_pte(boot_pgdir, (uintptr_t)KADDR(i), 0)) != NULL);
+        assert(PTE_ADDR(*ptep) == i);
+    }
+
     assert(PDE_ADDR(boot_pgdir[PDX0(VPT)]) == PADDR(boot_pgdir));
 
     assert(boot_pgdir[0] == 0);
+
     struct Page *p;
     p = alloc_page();
     assert(page_insert(boot_pgdir, p, 0x100, PTE_W | PTE_R) == 0);
     assert(page_ref(p) == 1);
     assert(page_insert(boot_pgdir, p, 0x100 + PGSIZE, PTE_W | PTE_R) == 0);
     assert(page_ref(p) == 2);
-    pte_t *pte = get_pte(boot_pgdir, 0x100, 0);
 
     const char *str = "ucore: Hello world!!";
     strcpy((void *)0x100, str);
-    kprintf("-- szx (void *)0x100:%s\n",(void *)0x100);
-    kprintf("-- szx (void *)(0x100 + PGSIZE):%s\n",(void *)(0x100 + PGSIZE));
     assert(strcmp((void *)0x100, (void *)(0x100 + PGSIZE)) == 0);
 
     *(char *)(page2kva(p) + 0x100) = '\0';
