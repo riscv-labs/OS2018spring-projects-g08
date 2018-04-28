@@ -11,6 +11,9 @@
 #include <kio.h>
 #include <string.h>
 #include <trap.h>
+#include <vmm.h>
+#include <ide.h>
+#include <swap.h>
 //#include <mp.h>
 //#include <mod.h>
 
@@ -30,7 +33,7 @@ int kern_init(void) {
     print_kerninfo();
 
 	/* Only to initialize lcpu_count. */
-	// mp_init();
+	mp_init();
 
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
@@ -38,6 +41,11 @@ int kern_init(void) {
 
     pic_init();  // init interrupt controller
     idt_init();  // init interrupt descriptor table
+
+    vmm_init();                 // init virtual memory management
+
+    ide_init();                 // init ide devices
+    swap_init();                // init swap
 
     // rdtime in mbare mode crashes
     clock_init();  // init clock interrupt

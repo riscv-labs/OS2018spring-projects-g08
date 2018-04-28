@@ -66,6 +66,7 @@
 #include <types.h>
 #include <atomic.h>
 #include <list.h>
+#include <mmu.h>
 
 
 /* *
@@ -79,8 +80,8 @@ struct Page {
 	unsigned int property;	// used in buddy system, stores the order (the X in 2^X) of the continuous memory block
 	int zone_num;		// used in buddy system, the No. of zone which the page belongs to
     list_entry_t page_link;         // free list link
-    //swap_entry_t index;	// stores a swapped-out page identifier
-	//list_entry_t swap_link;	// swap hash link
+    swap_entry_t index;	// stores a swapped-out page identifier
+	list_entry_t swap_link;	// swap hash link
 };
 
 /* Flags describing the status of a page frame */

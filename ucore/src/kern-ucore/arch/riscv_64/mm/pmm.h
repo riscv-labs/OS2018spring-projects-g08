@@ -64,6 +64,7 @@ pte_t *get_pte(pgd_t * pgdir, uintptr_t la, bool create);
 struct Page *get_page(pgd_t *pgdir, uintptr_t la, pte_t **ptep_store);
 void page_remove(pgd_t *pgdir, uintptr_t la);
 int page_insert(pgd_t *pgdir, struct Page *page, uintptr_t la, pte_perm_t perm);
+struct Page *pgdir_alloc_page(pgd_t *pgdir, uintptr_t la, uint32_t perm);
 
 // void load_rsp0(uintptr_t rsp0);
 // void set_pgdir(struct proc_struct *proc, pgd_t * pgdir);
@@ -75,7 +76,7 @@ void tlb_update(pgd_t * pgdir, uintptr_t la);
 void tlb_invalidate(pgd_t * pgdir, uintptr_t la);
 void tlb_invalidate_user(void);
 
-// struct Page *pgdir_alloc_page(pgd_t * pgdir, uintptr_t la, uint32_t perm);
+struct Page *pgdir_alloc_page(pgd_t * pgdir, uintptr_t la, uint32_t perm);
 // void unmap_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
 // void exit_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
 // int copy_range(pgd_t * to, pgd_t * from, uintptr_t start, uintptr_t end,

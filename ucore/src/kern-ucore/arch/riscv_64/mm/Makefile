@@ -1,2 +1,1 @@
-# obj-y = buddy_pmm.o pmm.o swap.o vmm.o
-obj-y = buddy_pmm.o pmm.o
+obj-y = buddy_pmm.o pmm.o swap.o vmm.o

@@ -13,7 +13,8 @@
 #include <slab.h>
 //#include <proc.h>
 #include <mp.h>
-
+#include <vmm.h>
+#include <swap.h>
 
 static DEFINE_PERCPU_NOINIT(size_t, used_pages);
 DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
@@ -53,7 +54,6 @@ pgd_t *const vpd = (pgd_t *)PGADDR(PDX1(VPT), PDX1(VPT), PDX1(VPT), 0);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
-    extern char kern_entry[];
     pmm_manager = &buddy_pmm_manager;
 
     kprintf("memory management: %s\n", pmm_manager->name);
@@ -128,7 +128,7 @@ try_again:
 	}
 #endif
 
-	// get_cpu_var(used_pages) += n;
+	get_cpu_var(used_pages) += n;
 	return page;
 }
 
@@ -140,7 +140,7 @@ void free_pages(struct Page *base, size_t n) {
         pmm_manager->free_pages(base, n);
     }
     local_intr_restore(intr_flag);
-    // get_cpu_var(used_pages) -= n;
+    get_cpu_var(used_pages) -= n;
 }
 
 size_t nr_used_pages(void)
@@ -277,16 +277,13 @@ void pmm_init(void) {
     // map all physical memory to linear memory with base linear addr KERNBASE
     // linear_addr KERNBASE~KERNBASE+KMEMSIZE = phy_addr 0~KMEMSIZE
     // But shouldn't use this map until enable_paging() & gdt_init() finished.
-    // boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, 0, PTE_W);
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PADDR(KERNBASE),
                      READ_WRITE_EXEC);
 
-    // IMPORTANT !!!
-    // Map last page to make SBI happy
-    // pgd_t *sptbr = KADDR(read_csr(sptbr) << PGSHIFT);
-    // pte_t *sbi_pte = get_pte(sptbr, 0xFFFFFFFF, 0);
-    // boot_map_segment(boot_pgdir, (uintptr_t)(-PGSIZE), PGSIZE,
-    //                  PTE_ADDR(*sbi_pte), READ_EXEC);
+    // temporary map:
+    // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M =
+    // phy_addr 0~4M
+    // boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
 
     enable_paging();
 
@@ -435,15 +432,11 @@ static const char *perm2str(int perm) {
 static int get_pgtable_items(size_t left, size_t right, size_t start,
                              uintptr_t *table, size_t *left_store,
                              size_t *right_store) {
-	kprintf("-- szx get_pgtable_items: in start:%d, right:%d --\n",start,right);
     if (start >= right) {
-    	kprintf("-- szx get_pgtable_items: out start>=right\n");
         return 0;
     }
-    kprintf("-- szx table[%d]:%p \n",start,table);
     while (start < right && !(table[start] & PTE_V)) {
         start++;
-        kprintf("-- szx start1:%d --\n",start);
     }
     if (start < right) {
         if (left_store != NULL) {
@@ -452,15 +445,12 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
         int perm = (table[start++] & PTE_USER);
         while (start < right && (table[start] & PTE_USER) == perm) {
             start++;
-            kprintf("-- szx start2:%d --\n",start);
         }
         if (right_store != NULL) {
             *right_store = start;
         }
         return perm;
-    	kprintf("-- szx get_pgtable_items: out perm:%x --\n",perm);
     }
-	kprintf("-- szx get_pgtable_items: out return 0\n");
     return 0;
 }
 
