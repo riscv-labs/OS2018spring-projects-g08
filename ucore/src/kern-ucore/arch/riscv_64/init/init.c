@@ -35,10 +35,8 @@ int kern_init(void) {
 	/* Only to initialize lcpu_count. */
 	mp_init();
 
-
 	size_t nr_used_pages_store = nr_used_pages();
 	kprintf("1:nr_used_pages: %d\n", nr_used_pages);
-
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
     // pmm_init_ap();
@@ -49,12 +47,14 @@ int kern_init(void) {
     pic_init();  // init interrupt controller
     idt_init();  // init interrupt descriptor table
 
-    vmm_init();                 // init virtual memory management
+//     vmm_init();                 // init virtual memory management
 
-    ide_init();                 // init ide devices
-#ifdef UCONFIG_SWAP
-	swap_init();		// init swap
-#endif
+//     ide_init();                 // init ide devices
+// #ifdef UCONFIG_SWAP
+// 	swap_init();		// init swap
+// #endif
+
+
     // fs_init();
     // rdtime in mbare mode crashes
     clock_init();  // init clock interrupt

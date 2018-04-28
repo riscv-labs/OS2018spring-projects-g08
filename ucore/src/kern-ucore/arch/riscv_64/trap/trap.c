@@ -93,12 +93,12 @@ static inline void print_pgfault(struct trapframe *tf) {
 }
 
 static int pgfault_handler(struct trapframe *tf) {
-    extern struct mm_struct *check_mm_struct;
-    print_pgfault(tf);
-    if (check_mm_struct != NULL) {
-        return do_pgfault(check_mm_struct, tf->cause, tf->badvaddr);
-    }
-    panic("unhandled page fault.\n");
+    // extern struct mm_struct *check_mm_struct;
+    // print_pgfault(tf);
+    // if (check_mm_struct != NULL) {
+    //     return do_pgfault(check_mm_struct, tf->cause, tf->badvaddr);
+    // }
+    // panic("unhandled page fault.\n");
 }
 
 static volatile int in_swap_tick_event = 0;
