@@ -11,7 +11,7 @@
 #include <sync.h>
 #include <arch.h>
 #include <slab.h>
-//#include <proc.h>
+#include <proc.h>
 #include <mp.h>
 #include <vmm.h>
 #include <swap.h>
@@ -68,43 +68,44 @@ static void init_memmap(struct Page *base, size_t n) {
 
 
 
-// /* *
-//  * load_rsp0 - change the RSP0 in default task state segment,
-//  * so that we can use different kernel stack when we trap frame
-//  * user to kernel.
-//  * */
-// void load_rsp0(uintptr_t rsp0)
-// {
-// 	ts.ts_esp0 = rsp0;
-// }
+/* *
+ * load_rsp0 - change the RSP0 in default task state segment,
+ * so that we can use different kernel stack when we trap frame
+ * user to kernel.
+ * */
+void load_rsp0(uintptr_t rsp0)
+{
+	// ts.ts_esp0 = rsp0;
+}
 
-// /**
-//  * set_pgdir - save the physical address of the current pgdir
-//  */
-// void set_pgdir(struct proc_struct *proc, pgd_t * pgdir)
-// {
-// 	assert(proc != NULL);
-// 	proc->cr3 = PADDR(pgdir);
-// }
+/**
+ * set_pgdir - save the physical address of the current pgdir
+ */
+void set_pgdir(struct proc_struct *proc, pgd_t * pgdir)
+{
+	assert(proc != NULL);
+	proc->cr3 = PADDR(pgdir);
+}
 
-// /**
-//  * load_pgdir - use the page table specified in @proc by @cr3
-//  */
-// void load_pgdir(struct proc_struct *proc)
-// {
-// 	if (proc != NULL)
-// 		lcr3(proc->cr3);
-// 	else
-// 		lcr3(boot_cr3);
-// }
+/**
+ * load_pgdir - use the page table specified in @proc by @cr3
+ */
+void load_pgdir(struct proc_struct *proc)
+{
+	if (proc != NULL)
+		lcr3(proc->cr3);
+	else
+		lcr3(boot_cr3);
+}
 
-// /**
-//  * map_pgdir - map the current pgdir @pgdir to its own address space
-//  */
-// void map_pgdir(pgd_t * pgdir)
-// {
-// 	pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
-// }
+/**
+ * map_pgdir - map the current pgdir @pgdir to its own address space
+ */
+void map_pgdir(pgd_t * pgdir)
+{
+    ptep_map(&(pgdir[PGX(VPT)]), PADDR(pgdir));
+	ptep_set_s_write(&(pgdir[PGX(VPT)]));
+}
 
 
 

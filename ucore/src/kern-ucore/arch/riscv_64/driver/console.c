@@ -1,6 +1,6 @@
 #include <sbi.h>
 #include <sync.h>
-#include <defs.h>
+#include <types.h>
 #include <console.h>
 
 /* kbd_intr - try to feed input characters from keyboard */

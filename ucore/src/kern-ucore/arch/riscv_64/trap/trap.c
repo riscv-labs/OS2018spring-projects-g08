@@ -87,7 +87,7 @@ void print_regs(struct pushregs *gpr) {
 }
 
 static inline void print_pgfault(struct trapframe *tf) {
-    cprintf("page falut at 0x%08x: %c/%c\n", tf->badvaddr,
+    kprintf("page falut at 0x%08x: %c/%c\n", tf->badvaddr,
             trap_in_kernel(tf) ? 'K' : 'U',
             tf->cause == CAUSE_STORE_PAGE_FAULT ? 'W' : 'R');
 }
@@ -161,61 +161,61 @@ void exception_handler(struct trapframe *tf) {
     int ret;
     switch (tf->cause) {
         case CAUSE_MISALIGNED_FETCH:
-            cprintf("Instruction address misaligned\n");
+            kprintf("Instruction address misaligned\n");
             break;
         case CAUSE_FETCH_ACCESS:
-            cprintf("Instruction access fault\n");
+            kprintf("Instruction access fault\n");
             break;
         case CAUSE_ILLEGAL_INSTRUCTION:
-            cprintf("Illegal instruction\n");
+            kprintf("Illegal instruction\n");
             break;
         case CAUSE_BREAKPOINT:
-            cprintf("Breakpoint\n");
+            kprintf("Breakpoint\n");
             break;
         case CAUSE_MISALIGNED_LOAD:
-            cprintf("Load address misaligned\n");
+            kprintf("Load address misaligned\n");
             break;
         case CAUSE_LOAD_ACCESS:
-            cprintf("Load access fault\n");
+            kprintf("Load access fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
                 print_trapframe(tf);
                 panic("handle pgfault failed. %e\n", ret);
             }
             break;
         case CAUSE_MISALIGNED_STORE:
-            cprintf("AMO address misaligned\n");
+            kprintf("AMO address misaligned\n");
             break;
         case CAUSE_STORE_ACCESS:
-            cprintf("Store/AMO access fault\n");
+            kprintf("Store/AMO access fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
                 print_trapframe(tf);
                 panic("handle pgfault failed. %e\n", ret);
             }
             break;
         case CAUSE_USER_ECALL:
-            cprintf("Environment call from U-mode\n");
+            kprintf("Environment call from U-mode\n");
             break;
         case CAUSE_SUPERVISOR_ECALL:
-            cprintf("Environment call from S-mode\n");
+            kprintf("Environment call from S-mode\n");
             break;
         case CAUSE_HYPERVISOR_ECALL:
-            cprintf("Environment call from H-mode\n");
+            kprintf("Environment call from H-mode\n");
             break;
         case CAUSE_MACHINE_ECALL:
-            cprintf("Environment call from M-mode\n");
+            kprintf("Environment call from M-mode\n");
             break;
         case CAUSE_FETCH_PAGE_FAULT:
-            cprintf("Instruction page fault\n");
+            kprintf("Instruction page fault\n");
             break;
         case CAUSE_LOAD_PAGE_FAULT:
-            cprintf("Load page fault\n");
+            kprintf("Load page fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
                 print_trapframe(tf);
                 panic("handle pgfault failed. %e\n", ret);
             }
             break;
         case CAUSE_STORE_PAGE_FAULT:
-            cprintf("Store/AMO page fault\n");
+            kprintf("Store/AMO page fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
                 print_trapframe(tf);
                 panic("handle pgfault failed. %e\n", ret);
@@ -246,3 +246,8 @@ static inline void trap_dispatch(struct trapframe *tf) {
  * trapframe and then uses the iret instruction to return from the exception.
  * */
 void trap(struct trapframe *tf) { trap_dispatch(tf);}
+
+int ucore_in_interrupt()
+{
+	return 0;
+}

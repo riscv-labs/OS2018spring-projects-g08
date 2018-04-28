@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <kio.h>
 
-// #ifdef UCONFIG_SWAP
+#ifdef UCONFIG_SWAP
 
 typedef struct {
 	list_entry_t swap_list;
@@ -113,9 +113,9 @@ void check_mm_swap(void)
 
 	struct Page *page = alloc_page();
 	assert(page != NULL);
-	pde_t *pgdir = page2kva(page);
+	pgd_t *pgdir = page2kva(page);
 	memcpy(pgdir, boot_pgdir, PGSIZE);
-	pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
+	pgdir[PGX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
 
 	// prepare for page fault
 
@@ -217,7 +217,7 @@ void check_mm_swap(void)
 	}
 
 	exit_mmap(mm0);
-	for (i = 0; i < PDX(KERNBASE); i++) {
+	for (i = 0; i < PGX(KERNBASE); i++) {
 		assert(pgdir[i] == 0);
 	}
 
@@ -255,7 +255,7 @@ void check_mm_swap(void)
 	assert(page != NULL);
 	pgdir = page2kva(page);
 	memcpy(pgdir, boot_pgdir, PGSIZE);
-	pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
+	pgdir[PGX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
 	mm1->pgdir = pgdir;
 
 	ret = dup_mmap(mm1, mm0);
@@ -329,9 +329,9 @@ void check_mm_shm_swap(void)
 
 	struct Page *page = alloc_page();
 	assert(page != NULL);
-	pde_t *pgdir = page2kva(page);
+	pgd_t *pgdir = page2kva(page);
 	memcpy(pgdir, boot_pgdir, PGSIZE);
-	pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
+	pgdir[PGX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
 
 	mm0->pgdir = pgdir;
 	check_mm_struct = mm0;
@@ -424,7 +424,7 @@ void check_mm_shm_swap(void)
 	assert(page != NULL);
 	pgdir = page2kva(page);
 	memcpy(pgdir, boot_pgdir, PGSIZE);
-	pgdir[PDX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
+	pgdir[PGX(VPT)] = PADDR(pgdir) | PTE_P | PTE_W;
 	mm1->pgdir = pgdir;
 
 	ret = dup_mmap(mm1, mm0);

@@ -14,7 +14,7 @@
 #include <vmm.h>
 #include <ide.h>
 #include <swap.h>
-//#include <mp.h>
+#include <mp.h>
 //#include <mod.h>
 
 int kern_init(void) __attribute__((noreturn));
@@ -45,8 +45,10 @@ int kern_init(void) {
     vmm_init();                 // init virtual memory management
 
     ide_init();                 // init ide devices
-    swap_init();                // init swap
-
+#ifdef UCONFIG_SWAP
+	swap_init();		// init swap
+#endif
+    fs_init();
     // rdtime in mbare mode crashes
     clock_init();  // init clock interrupt
     //mod_init();

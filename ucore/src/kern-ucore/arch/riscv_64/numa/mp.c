@@ -2,11 +2,11 @@
 #include <pmm.h>
 #include <trap.h>
 #include <spinlock.h>
-// #include <proc.h>
+#include <proc.h>
 #include <kio.h>
 #include <assert.h>
 #include <arch.h>
-// #include <vmm.h>
+#include <vmm.h>
 #include <sysconf.h>
 
 void *percpu_offsets[NCPU];
@@ -38,10 +38,10 @@ void kern_leave(void)
 
 void mp_set_mm_pagetable(struct mm_struct *mm)
 {
-	// if (mm != NULL && mm->pgdir != NULL)
-	// 	lcr3(PADDR(mm->pgdir));
-	// else
-	// 	lcr3(boot_cr3);
+	if (mm != NULL && mm->pgdir != NULL)
+		lcr3(PADDR(mm->pgdir));
+	else
+		lcr3(boot_cr3);
 }
 
 pgd_t *mpti_pgdir;
