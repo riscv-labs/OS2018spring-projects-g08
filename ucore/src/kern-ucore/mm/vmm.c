@@ -742,8 +742,9 @@ user_mem_check(struct mm_struct * mm, uintptr_t addr, size_t len, bool write)
 static void check_vmm(void)
 {
 	size_t nr_used_pages_store = nr_used_pages();
+	kprintf("nr_used_pages: %d\n", nr_used_pages);
 	size_t slab_allocated_store = slab_allocated();
-
+	kprintf("slab_allocated_store: %d\n", slab_allocated_store);
 	check_vma_struct();
 	check_pgfault();
 
