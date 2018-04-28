@@ -294,7 +294,7 @@ void pmm_init(void) {
 
     // print_pgdir();
 
-    // slab_init();
+    slab_init();
 }
 
 void pmm_init_ap(void)

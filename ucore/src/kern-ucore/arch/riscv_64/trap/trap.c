@@ -171,6 +171,7 @@ void exception_handler(struct trapframe *tf) {
             break;
         case CAUSE_BREAKPOINT:
             kprintf("Breakpoint\n");
+            panic("test:lc\n");
             break;
         case CAUSE_MISALIGNED_LOAD:
             kprintf("Load address misaligned\n");
