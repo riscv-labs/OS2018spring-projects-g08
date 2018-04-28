@@ -18,8 +18,8 @@ ADDITIONAL_LDFLAGS=""
 #
 # Filesystem
 #
-HAVE_SFS=y
-SFS_IMAGE_SIZE=256
+HAVE_SFS=n
+#SFS_IMAGE_SIZE=256
 # HAVE_YAFFS2 is not set
 # HAVE_FATFS is not set
 
