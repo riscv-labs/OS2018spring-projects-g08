@@ -47,7 +47,7 @@ void check_mm_swap(void)
 	assert(check_mm_struct == NULL);
 
 	// step1: check mm_map
-
+	
 	struct mm_struct *mm0 = mm_create(), *mm1;
 	assert(mm0 != NULL && list_empty(&(mm0->mmap_list)));
 

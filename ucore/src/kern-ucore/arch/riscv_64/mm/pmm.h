@@ -9,7 +9,7 @@
 #include <proc.h>
 #include <arch.h>
 
-#define TEST_PAGE 0x0
+#define TEST_PAGE 0X1000
 
 // pmm_manager is a physical memory management class. A special pmm manager -
 // XXX_pmm_manager

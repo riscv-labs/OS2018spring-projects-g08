@@ -239,8 +239,8 @@ static inline void ptep_copy(pte_t * to, pte_t * from)
 
 static inline void ptep_unset_perm(pte_t * ptep, pte_perm_t perm)
 {
-	if (perm & PTE_W) {
-		perm |= PTE_R;
+	if (perm & PTE_R) {
+		perm |= PTE_W;
 	}
 	*ptep &= (~perm);
 }

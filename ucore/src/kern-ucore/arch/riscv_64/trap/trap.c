@@ -96,7 +96,26 @@ static int pgfault_handler(struct trapframe *tf) {
     extern struct mm_struct *check_mm_struct;
     print_pgfault(tf);
     if (check_mm_struct != NULL) {
-        return do_pgfault(check_mm_struct, tf->cause, tf->badvaddr);
+        uint64_t cause;
+        uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);
+        pte_t* ptep = get_pte(check_mm_struct->pgdir, addr, 0);
+        if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
+            if (ptep == NULL || ptep_present(ptep)) {
+                cause = 3;
+            }
+            else {
+                cause = 2;
+            }
+        }
+        else {
+            if (ptep == NULL || ptep_present(ptep)) {
+                cause = 1;
+            }
+            else {
+                cause = 0;
+            }
+        }
+        return do_pgfault(check_mm_struct, cause, tf->badvaddr);
     }
     panic("unhandled page fault.\n");
 }
@@ -171,7 +190,6 @@ void exception_handler(struct trapframe *tf) {
             break;
         case CAUSE_BREAKPOINT:
             kprintf("Breakpoint\n");
-            panic("test:lc\n");
             break;
         case CAUSE_MISALIGNED_LOAD:
             kprintf("Load address misaligned\n");
