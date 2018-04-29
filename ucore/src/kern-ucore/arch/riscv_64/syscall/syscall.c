@@ -53,7 +53,7 @@ sys_yield(uint64_t arg[]) {
 static int
 sys_kill(uint64_t arg[]) {
     int pid = (int)arg[0];
-    return do_kill(pid);
+    return do_kill(pid, -E_KILLED);
 }
 
 static int
@@ -64,7 +64,7 @@ sys_getpid(uint64_t arg[]) {
 static int
 sys_putc(uint64_t arg[]) {
     int c = (int)arg[0];
-    cputchar(c);
+    cons_putc(c);
     return 0;
 }
 
@@ -77,13 +77,6 @@ sys_pgdir(uint64_t arg[]) {
 static int
 sys_gettime(uint64_t arg[]) {
     return (int)ticks;
-}
-static int
-sys_lab6_set_priority(uint64_t arg[])
-{
-    uint64_t priority = (uint64_t)arg[0];
-    lab6_set_priority(priority);
-    return 0;
 }
 
 static int
@@ -153,7 +146,7 @@ static int
 sys_getdirentry(uint64_t arg[]) {
     int fd = (int)arg[0];
     struct dirent *direntp = (struct dirent *)arg[1];
-    return sysfile_getdirentry(fd, direntp);
+    return sysfile_getdirentry(fd, direntp, NULL);
 }
 
 static int
@@ -174,7 +167,6 @@ static int (*syscalls[])(uint64_t arg[]) = {
     [SYS_putc]              sys_putc,
     [SYS_pgdir]             sys_pgdir,
     [SYS_gettime]           sys_gettime,
-    [SYS_lab6_set_priority] sys_lab6_set_priority,
     [SYS_sleep]             sys_sleep,
     [SYS_open]              sys_open,
     [SYS_close]             sys_close,

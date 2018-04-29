@@ -218,7 +218,7 @@ FORCE:
 PHONY += FORCE
 
 
-qemu: kernel
+qemu: sfsimg kernel
 	$(Q)qemu-system-riscv64  -machine virt -kernel obj/kernel.img -nographic
 
 spike: kernel

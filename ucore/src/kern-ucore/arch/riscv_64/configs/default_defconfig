@@ -13,13 +13,13 @@ ADDITIONAL_LDFLAGS=""
 # Schedule
 #
 # SCHEDULER_RR is not set
-#SCHEDULER_MLFQ=y
+SCHEDULER_MLFQ=y
 
 #
 # Filesystem
 #
 HAVE_SFS=y
-SFS_IMAGE_SIZE=256
+SFS_IMAGE_SIZE=64
 # HAVE_YAFFS2 is not set
 # HAVE_FATFS is not set
 

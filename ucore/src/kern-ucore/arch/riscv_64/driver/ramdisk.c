@@ -8,8 +8,8 @@
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-extern char _binary_bin_swap_img_start[], _binary_bin_swap_img_end[];
-extern char _binary_bin_sfs_img_start[], _binary_bin_sfs_img_end[];
+extern char _binary_swap_img_start[], _binary_swap_img_end[];
+extern char _binary_sfs_img_start[], _binary_sfs_img_end[];
 
 bool check_initrd(const char _initrd_begin[], const char _initrd_end[]) {
     if (_initrd_begin == _initrd_end) {
@@ -42,11 +42,11 @@ void ramdisk_init(int devno, struct ide_device *dev) {
     char *_initrd_begin;
     char *_initrd_end;
     if (devno == SWAP_DEV_NO) {
-        _initrd_begin = _binary_bin_swap_img_start;
-        _initrd_end = _binary_bin_swap_img_end;
+        _initrd_begin = _binary_swap_img_start;
+        _initrd_end = _binary_swap_img_end;
     } else if (devno == DISK0_DEV_NO) {
-        _initrd_begin = _binary_bin_sfs_img_start;
-        _initrd_end = _binary_bin_sfs_img_end;
+        _initrd_begin = _binary_sfs_img_start;
+        _initrd_end = _binary_sfs_img_end;
     } else {
         panic("Device Not Found");
     }

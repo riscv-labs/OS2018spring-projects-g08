@@ -1970,13 +1970,13 @@ static int init_main(void *arg)
 #else
 	kprintf("init_main:: swapping is disabled.\n");
 #endif
-
+	
 	int ret;
 	char root[] = "disk0:";
 	if ((ret = vfs_set_bootfs(root)) != 0) {
 		panic("set boot fs failed: %e.\n", ret);
 	}
-
+	
 	size_t nr_used_pages_store = nr_used_pages();
 	size_t slab_allocated_store = slab_allocated();
 

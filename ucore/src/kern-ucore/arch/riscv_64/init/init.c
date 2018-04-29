@@ -54,7 +54,7 @@ int kern_init(void) {
 #ifdef UCONFIG_SWAP
 	swap_init();		// init swap
 #endif
-    // fs_init();
+    fs_init();
     // rdtime in mbare mode crashes
     clock_init();  // init clock interrupt
     //mod_init();

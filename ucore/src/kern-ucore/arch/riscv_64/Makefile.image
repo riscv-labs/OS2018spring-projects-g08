@@ -8,13 +8,33 @@ LINK_FILE_IN	:= $(KTREE)/arch/${ARCH}/ucore.ld.in
 LINK_FILE     := $(KTREE_OBJ_ROOT)/arch/$(ARCH)/ucore.ld
 SEDFLAGS	= s/TEXT_START/$(UCONFIG_KERNEL_BASE)/
 
+## swap start
+
+SWAPFS_FILE := $(OBJPATH_ROOT)/swap.img
+
+$(SWAPFS_FILE): | $(OBJPATH_ROOT)
+	@echo Making $@
+	$(Q)dd if=/dev/zero of=$@ bs=4KB count=8 >/dev/null 2>&1
+
+## swap end
+
+## sfs start
+
+SFSIMG_FILE := $(OBJPATH_ROOT)/sfs-orig.img
+
+## sfs end
+
 $(KERNEL_IMG): $(KERNEL_ELF)
 	@echo Making $@
 	cd $(TOPDIR)/../riscv-pk && rm -rf build && mkdir build && cd build && ../configure --prefix=$(RISCV) --host=riscv64-unknown-elf --with-payload=$(KERNEL_ELF) --disable-fp-emulation --enable-logo && make && cp bbl $(KERNEL_IMG)
 
-$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ)
+$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(SWAPFS_FILE) $(SFSIMG_FILE)
 	@echo Linking uCore
-	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) -o $@
+	mv $(SWAPFS_FILE) .
+	mv $(SFSIMG_FILE) ./sfs.img
+	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) -o $@ --format=binary swap.img sfs.img --format=default
+	mv swap.img $(SWAPFS_FILE)
+	mv sfs.img $(SFSIMG_FILE)
 
 $(LINK_FILE): $(LINK_FILE_IN) $(KCONFIG_AUTOCONFIG)
 	@echo "creating linker script"

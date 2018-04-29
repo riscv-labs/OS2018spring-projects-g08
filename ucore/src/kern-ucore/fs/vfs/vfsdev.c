@@ -299,7 +299,7 @@ vfs_mount(const char *devname,
 	vfs_dev_t *vdev;
 	if ((ret = find_mount(devname, &vdev)) != 0) {
 		goto out;
-	}
+	}	
 	if (vdev->fs != NULL) {
 		ret = -E_BUSY;
 		goto out;

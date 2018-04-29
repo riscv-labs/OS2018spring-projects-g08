@@ -48,7 +48,6 @@ static int get_device(char *path, char **subpath, struct inode **node_store)
 		*subpath = path + colon;
 		return vfs_get_root(path, node_store);
 	}
-
 	/* *
 	 * we have either /path or :path
 	 * /path is a path relative to the root of the "boot filesystem"
