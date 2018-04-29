@@ -46,6 +46,9 @@ int kern_init(void) {
     idt_init();  // init interrupt descriptor table
 
     vmm_init();                 // init virtual memory management
+    sched_init();		// init scheduler
+    proc_init();                // init process table
+    sync_init();		// init sync struct
 
     ide_init();                 // init ide devices
 #ifdef UCONFIG_SWAP
@@ -58,12 +61,7 @@ int kern_init(void) {
 
     intr_enable();  // enable irq interrupt
 
-    // LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test()
-    // user/kernel mode switch test
-    // lab1_switch_test();
-    /* do nothing */
-    while (1)
-        ;
+    cpu_idle();                 // run idle process
 }
 
 void __attribute__((noinline))

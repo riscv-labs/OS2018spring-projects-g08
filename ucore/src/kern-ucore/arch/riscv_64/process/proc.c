@@ -91,7 +91,7 @@ int kernel_execve(const char *name, const char **argv, const char **kenvp)
 	// 	      "d"(kenvp)
 	// 	      :"memory");
 	// return ret;
-    int64_t argc = 0, ret;
+	int64_t argc = 0, ret;
     while (argv[argc] != NULL) {
         argc ++;
     }
@@ -132,6 +132,33 @@ init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 	// tf->tf_rflags = FL_IF;
 	// tf->tf_regs.reg_rdi = argc;
 	// tf->tf_regs.reg_rsi = (uintptr_t) uargv;
+
+
+	//setup argc, argv
+    uint32_t argv_size=0, i;
+    for (i = 0; i < argc; i ++) {
+        argv_size += strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
+    }
+
+    uintptr_t stacktop = USTACKTOP - (argv_size/sizeof(long)+1)*sizeof(long);
+    char** uargv=(char **)(stacktop  - argc * sizeof(char *));
+
+    argv_size = 0;
+    for (i = 0; i < argc; i ++) {
+        uargv[i] = strcpy((char *)(stacktop + argv_size ), kargv[i]);
+        argv_size +=  strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
+    }
+
+	stacktop = (uintptr_t)uargv - sizeof(int64_t);
+    *(int64_t *)stacktop = argc;
+
+	struct trapframe *tf = current->tf;
+    // Keep sstatus
+    uintptr_t sstatus = tf->status;
+    memset(tf, 0, sizeof(struct trapframe));
+    tf->gpr.sp = stacktop;
+    tf->epc = elf->e_entry;
+    tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
 
 	return 0;
 }
