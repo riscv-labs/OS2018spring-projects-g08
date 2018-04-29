@@ -104,7 +104,7 @@ void load_pgdir(struct proc_struct *proc)
 void map_pgdir(pgd_t * pgdir)
 {
     ptep_map(&(pgdir[PGX(VPT)]), PADDR(pgdir));
-	ptep_set_s_write(&(pgdir[PGX(VPT)]));
+	//ptep_set_present(&(pgdir[PGX(VPT)]));
 }
 
 

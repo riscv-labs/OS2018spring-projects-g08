@@ -80,10 +80,10 @@ void tlb_invalidate(pgd_t * pgdir, uintptr_t la);
 void tlb_invalidate_user(void);
 
 struct Page *pgdir_alloc_page(pgd_t * pgdir, uintptr_t la, uint32_t perm);
-// void unmap_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
-// void exit_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
-// int copy_range(pgd_t * to, pgd_t * from, uintptr_t start, uintptr_t end,
-// 	       bool share);
+void unmap_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
+void exit_range(pgd_t * pgdir, uintptr_t start, uintptr_t end);
+int copy_range(pgd_t * to, pgd_t * from, uintptr_t start, uintptr_t end,
+	       bool share);
 
 void print_pgdir(void);
 

@@ -32,9 +32,10 @@ void idt_init(void) {
     write_csr(sscratch, 0);
     /* Set the exception vector address */
     write_csr(stvec, &__alltraps);
-    set_csr(sstatus, SSTATUS_SIE);
     /* Allow kernel to access user memory */
     set_csr(sstatus, SSTATUS_SUM);
+    /* Allow keyboard interrupt */
+    set_csr(sie, MIP_SSIP);
 }
 
 /* trap_in_kernel - test if trap happened in kernel */
@@ -87,88 +88,108 @@ void print_regs(struct pushregs *gpr) {
 }
 
 static inline void print_pgfault(struct trapframe *tf) {
-    kprintf("page falut at 0x%08x: %c/%c\n", tf->badvaddr,
-            trap_in_kernel(tf) ? 'K' : 'U',
-            tf->cause == CAUSE_STORE_PAGE_FAULT ? 'W' : 'R');
+    // The page fault test is in kernel anyway, so print a 'K/' here
+    cprintf("page falut at 0x%08x: K/", tf->badvaddr);
+    if (tf->cause == CAUSE_LOAD_PAGE_FAULT) {
+        cprintf("R\n");
+    } else if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
+        cprintf("W\n");
+    } else {
+        cprintf("0x%08x\n", tf->cause);
+    }
 }
 
 static int pgfault_handler(struct trapframe *tf) {
     extern struct mm_struct *check_mm_struct;
     print_pgfault(tf);
+    struct mm_struct *mm;
     if (check_mm_struct != NULL) {
-        uint64_t cause;
-        uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);
-        pte_t* ptep = get_pte(check_mm_struct->pgdir, addr, 0);
-        if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
-            if (ptep == NULL || ptep_present(ptep)) {
-                cause = 3;
-            }
-            else {
-                cause = 2;
-            }
+        assert(current == idleproc);
+        mm = check_mm_struct;
+    }
+    else {
+        if (current == NULL) {
+            print_trapframe(tf);
+            print_pgfault(tf);
+            panic("unhandled page fault.\n");
+        }
+        mm = current->mm;
+    }
+    uint64_t cause;
+    uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);
+    pte_t* ptep = get_pte(check_mm_struct->pgdir, addr, 0);
+    if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
+        if (ptep == NULL || ptep_present(ptep)) {
+            cause = 3;
         }
         else {
-            if (ptep == NULL || ptep_present(ptep)) {
-                cause = 1;
-            }
-            else {
-                cause = 0;
-            }
+            cause = 2;
         }
-        return do_pgfault(check_mm_struct, cause, tf->badvaddr);
     }
-    panic("unhandled page fault.\n");
+    else {
+        if (ptep == NULL || ptep_present(ptep)) {
+            cause = 1;
+        }
+        else {
+            cause = 0;
+        }
+    }
+    return do_pgfault(mm, cause, tf->badvaddr);
 }
 
 static volatile int in_swap_tick_event = 0;
 extern struct mm_struct *check_mm_struct;
 
-
 void interrupt_handler(struct trapframe *tf) {
     intptr_t cause = (tf->cause << 1) >> 1;
     switch (cause) {
         case IRQ_U_SOFT:
-            kprintf("User software interrupt\n");
+            cprintf("User software interrupt\n");
             break;
         case IRQ_S_SOFT:
-            kprintf("Supervisor software interrupt\n");
+            cprintf("Supervisor software interrupt\n");
+            serial_intr();
+            dev_stdin_write(cons_getc());
             break;
         case IRQ_H_SOFT:
-            kprintf("Hypervisor software interrupt\n");
+            cprintf("Hypervisor software interrupt\n");
             break;
         case IRQ_M_SOFT:
-            kprintf("Machine software interrupt\n");
+            cprintf("Machine software interrupt\n");
             break;
         case IRQ_U_TIMER:
-            kprintf("User Timer interrupt\n");
+            cprintf("User timer interrupt\n");
+            break;
         case IRQ_S_TIMER:
             // "All bits besides SSIP and USIP in the sip register are
             // read-only." -- privileged spec1.9.1, 4.1.4, p59
             // In fact, Call sbi_set_timer will clear STIP, or you can clear it
             // directly.
-            // kprintf("Supervisor timer interrupt\n");
+            // clear_csr(sip, SIP_STIP);
             clock_set_next_event();
-            if (++ticks % TICK_NUM == 0) {
-                print_ticks();
-            }
+            ++ticks;
+            run_timer_list();
+
+            serial_intr();
+            dev_stdin_write(cons_getc());
             break;
         case IRQ_H_TIMER:
-            kprintf("Hypervisor software interrupt\n");
+            cprintf("Hypervisor software interrupt\n");
             break;
         case IRQ_M_TIMER:
-            kprintf("Machine software interrupt\n");
+            cprintf("Machine software interrupt\n");
             break;
         case IRQ_U_EXT:
-            kprintf("User software interrupt\n");
+            cprintf("User external interrupt\n");
             break;
         case IRQ_S_EXT:
-            kprintf("Supervisor external interrupt\n");
+            cprintf("Supervisor external interrupt\n");
             break;
         case IRQ_H_EXT:
-            kprintf("Hypervisor software interrupt\n");
+            cprintf("Hypervisor external interrupt\n");
             break;
         case IRQ_M_EXT:
-            kprintf("Machine software interrupt\n");
+            cprintf("Machine external interrupt\n");
             break;
         default:
             print_trapframe(tf);
@@ -180,64 +201,80 @@ void exception_handler(struct trapframe *tf) {
     int ret;
     switch (tf->cause) {
         case CAUSE_MISALIGNED_FETCH:
-            kprintf("Instruction address misaligned\n");
+            cprintf("Instruction address misaligned\n");
             break;
         case CAUSE_FETCH_ACCESS:
-            kprintf("Instruction access fault\n");
+            cprintf("Instruction access fault\n");
             break;
         case CAUSE_ILLEGAL_INSTRUCTION:
-            kprintf("Illegal instruction\n");
+            cprintf("Illegal instruction\n");
             break;
         case CAUSE_BREAKPOINT:
-            kprintf("Breakpoint\n");
+            cprintf("Breakpoint\n");
             break;
         case CAUSE_MISALIGNED_LOAD:
-            kprintf("Load address misaligned\n");
+            cprintf("Load address misaligned\n");
             break;
         case CAUSE_LOAD_ACCESS:
-            kprintf("Load access fault\n");
-            if ((ret = pgfault_handler(tf)) != 0) {
-                print_trapframe(tf);
-                panic("handle pgfault failed. %e\n", ret);
-            }
+            cprintf("Load access fault\n");
             break;
         case CAUSE_MISALIGNED_STORE:
-            kprintf("AMO address misaligned\n");
+            cprintf("AMO address misaligned\n");
             break;
         case CAUSE_STORE_ACCESS:
-            kprintf("Store/AMO access fault\n");
-            if ((ret = pgfault_handler(tf)) != 0) {
-                print_trapframe(tf);
-                panic("handle pgfault failed. %e\n", ret);
-            }
+            cprintf("Store/AMO access fault\n");
             break;
         case CAUSE_USER_ECALL:
-            kprintf("Environment call from U-mode\n");
+            // cprintf("Environment call from U-mode\n");
+            tf->epc += 4;
+            syscall();
             break;
         case CAUSE_SUPERVISOR_ECALL:
-            kprintf("Environment call from S-mode\n");
+            cprintf("Environment call from S-mode\n");
+            tf->epc += 4;
+            syscall();
             break;
         case CAUSE_HYPERVISOR_ECALL:
-            kprintf("Environment call from H-mode\n");
+            cprintf("Environment call from H-mode\n");
             break;
         case CAUSE_MACHINE_ECALL:
-            kprintf("Environment call from M-mode\n");
+            cprintf("Environment call from M-mode\n");
             break;
         case CAUSE_FETCH_PAGE_FAULT:
-            kprintf("Instruction page fault\n");
+            panic("Instruction page fault\n");
             break;
         case CAUSE_LOAD_PAGE_FAULT:
-            kprintf("Load page fault\n");
+            cprintf("Load page fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
                 print_trapframe(tf);
-                panic("handle pgfault failed. %e\n", ret);
+                if (current == NULL) {
+                    panic("handle pgfault failed. ret=%d\n", ret);
+                } else {
+                    if (trap_in_kernel(tf)) {
+                        panic("handle pgfault failed in kernel mode. ret=%d\n",
+                              ret);
+                    }
+                    cprintf("killed by kernel.\n");
+                    panic("handle user mode pgfault failed. ret=%d\n", ret);
+                    do_exit(-E_KILLED);
+                }
             }
             break;
         case CAUSE_STORE_PAGE_FAULT:
-            kprintf("Store/AMO page fault\n");
+            cprintf("Store/AMO page fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
                 print_trapframe(tf);
-                panic("handle pgfault failed. %e\n", ret);
+                if (current == NULL) {
+                    panic("handle pgfault failed. ret=%d\n", ret);
+                } else {
+                    if (trap_in_kernel(tf)) {
+                        panic("handle pgfault failed in kernel mode. ret=%d\n",
+                              ret);
+                    }
+                    cprintf("killed by kernel.\n");
+                    panic("handle user mode pgfault failed. ret=%d\n", ret);
+                    do_exit(-E_KILLED);
+                }
             }
             break;
         default:
@@ -246,9 +283,7 @@ void exception_handler(struct trapframe *tf) {
     }
 }
 
-
-/* trap_dispatch - dispatch based on what type of trap occurred */
-static inline void trap_dispatch(struct trapframe *tf) {
+static inline void trap_dispatch(struct trapframe* tf) {
     if ((intptr_t)tf->cause < 0) {
         // interrupts
         interrupt_handler(tf);
@@ -259,12 +294,35 @@ static inline void trap_dispatch(struct trapframe *tf) {
 }
 
 /* *
- * trap - handles or dispatches an exception/interrupt. if and when trap()
- * returns,
+ * trap - handles or dispatches an exception/interrupt. if and when trap() returns,
  * the code in kern/trap/trapentry.S restores the old CPU state saved in the
  * trapframe and then uses the iret instruction to return from the exception.
  * */
-void trap(struct trapframe *tf) { trap_dispatch(tf);}
+void
+trap(struct trapframe *tf) {
+    // dispatch based on what type of trap has occurred
+    if (current == NULL) {
+        trap_dispatch(tf);
+    } else {
+        struct trapframe *otf = current->tf;
+        current->tf = tf;
+
+        bool in_kernel = trap_in_kernel(tf);
+
+        trap_dispatch(tf);
+
+        current->tf = otf;
+        if (!in_kernel) {
+            if (current->flags & PF_EXITING) {
+                do_exit(-E_KILLED);
+            }
+            if (current->need_resched) {
+                schedule();
+            }
+        }
+    }
+}
+
 
 int ucore_in_interrupt()
 {
