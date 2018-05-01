@@ -18,10 +18,24 @@
  *                            |    Remapped Physical Memory     | RW/-- KMEMSIZE
  *                            |                                 |
  *     KERNBASE ------------> +---------------------------------+ 0xC0000000
+ *                            |        Invalid Memory (*)       | --/--
+ *     USERTOP -------------> +---------------------------------+ 0xB0000000
+ *                            |           User stack            |
+ *                            +---------------------------------+
  *                            |                                 |
- *                            |                                 |
+ *                            :                                 :
+ *                            |         ~~~~~~~~~~~~~~~~        |
+ *                            :                                 :
  *                            |                                 |
  *                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                            |       User Program & Heap       |
+ *     UTEXT ---------------> +---------------------------------+ 0x00800000
+ *                            |        Invalid Memory (*)       | --/--
+ *                            |  - - - - - - - - - - - - - - -  |
+ *                            |    User STAB Data (optional)    |
+ *     USERBASE, USTAB------> +---------------------------------+ 0x00200000
+ *                            |        Invalid Memory (*)       | --/--
+ *     0 -------------------> +---------------------------------+ 0x00000000
  * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
  *     "Empty Memory" is normally unmapped, but user programs may map pages
  *     there if desired.
@@ -34,6 +48,8 @@
 #define PBASE				KERNBASE
 #define KMEMSIZE            0x38000000                  // the maximum amount of physical memory
 #define KERNTOP             (KERNBASE + KMEMSIZE)
+
+#define DISK_FS_VBASE       KERNTOP
 
 /* *
  * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains

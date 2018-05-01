@@ -113,7 +113,7 @@ static int pgfault_handler(struct trapframe *tf) {
         assert(current == idleproc);
         mm = check_mm_struct;
     }
-    else {
+    else {        
         if (current == NULL) {
             print_trapframe(tf);
             print_pgfault(tf);
@@ -122,10 +122,13 @@ static int pgfault_handler(struct trapframe *tf) {
         mm = current->mm;
     }
     uint64_t cause;
-    uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);
-    pte_t* ptep = get_pte(check_mm_struct->pgdir, addr, 0);
+    uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);    
+    pte_t* ptep = get_pte(mm->pgdir, addr, 0);
     if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
         if (ptep == NULL || ptep_present(ptep)) {
+            if (ptep == NULL) {
+                kprintf("pte is null\n");
+            }
             cause = 3;
         }
         else {

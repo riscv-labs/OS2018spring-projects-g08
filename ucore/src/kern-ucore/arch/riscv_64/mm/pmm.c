@@ -15,6 +15,8 @@
 #include <mp.h>
 #include <vmm.h>
 #include <swap.h>
+#include <ide.h>
+#include <ramdisk.h>
 
 static DEFINE_PERCPU_NOINIT(size_t, used_pages);
 DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
@@ -169,7 +171,8 @@ static void page_init(void) {
     va_pa_offset = KERNBASE - (uint64_t)kern_entry;
 
     uint64_t mem_begin = (uint64_t)kern_entry;
-    uint64_t mem_end = (8 << 20) + DRAM_BASE; // 8MB memory on qemu
+    //uint64_t mem_end = (8 << 20) + DRAM_BASE; // 8MB memory on qemu
+    uint64_t mem_end = (128 << 20) + DRAM_BASE;
     uint64_t mem_size = mem_end - mem_begin;
 
     kprintf("physical memory map:\n");
@@ -243,7 +246,7 @@ void *boot_alloc_page(void) {
 // pmm_init - setup a pmm to manage physical memory, build PDT&PT to setup
 // paging mechanism
 //         - check the correctness of pmm & paging mechanism, print PDT&PT
-void pmm_init(void) {
+void pmm_init(void) {        
     // We need to alloc/free the physical memory (granularity is 4KB or other
     // size).
     // So a framework of physical memory manager (struct pmm_manager)is defined
@@ -280,6 +283,13 @@ void pmm_init(void) {
     // But shouldn't use this map until enable_paging() & gdt_init() finished.
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PADDR(KERNBASE),
                      READ_WRITE_EXEC);
+
+    if (CHECK_INITRD_EXIST()) {
+		boot_map_segment(boot_pgdir, DISK_FS_VBASE,
+				 ROUNDUP(initrd_end - initrd_begin, PGSIZE),
+				 (uintptr_t) PADDR(initrd_begin), PTE_W | PTE_R);
+		kprintf("mapping initrd to 0x%08x\n", DISK_FS_VBASE);
+	}
 
     // temporary map:
     // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M =
@@ -334,7 +344,7 @@ void check_pgdir(void) {
     struct Page *p1, *p2;
     p1 = alloc_page();
     assert(page_insert(boot_pgdir, p1, 0x0, 0) == 0);
-
+    
     pte_t *ptep;
     assert((ptep = get_pte(boot_pgdir, 0x0, 0)) != NULL);
     assert(pte2page(*ptep) == p1);

@@ -104,7 +104,7 @@ int kernel_execve(const char *name, const char **argv, const char **kenvp)
         "ecall\n"
         "sd a0, %0"
         : "=m"(ret)
-        : "i"(SYS_exec), "m"(name), "m"(argc), "m"(argv)
+        : "i"(SYS_exec), "m"(name), "m"(argv), "m"(kenvp)
         : "memory");
     return ret;
 }
@@ -113,46 +113,35 @@ int
 init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 		 int argc, char **kargv, int envc, char **kenvp)
 {
-	// uintptr_t stacktop = USTACKTOP - argc * PGSIZE;
-	// char **uargv = (char **)(stacktop - argc * sizeof(char *));
-	// int i;
-	// for (i = 0; i < argc; i++) {
-	// 	uargv[i] = strcpy((char *)(stacktop + i * PGSIZE), kargv[i]);
-	// }
-	// stacktop = (uintptr_t) uargv;
+    // //setup argc, argv
+    // uint64_t argv_size=0, i;
+    // for (i = 0; i < argc; i ++) {
+	// 	kprintf("argv: %s\n", kargv[i]);
+    //     argv_size += strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
+    // }
 
-	// struct trapframe *tf = current->tf;
-	// memset(tf, 0, sizeof(struct trapframe));
-	// tf->tf_cs = USER_CS;
-	// tf->tf_ds = USER_DS;
-	// tf->tf_es = USER_DS;
-	// tf->tf_ss = USER_DS;
-	// tf->tf_rsp = stacktop;
-	// tf->tf_rip = elf->e_entry;
-	// tf->tf_rflags = FL_IF;
-	// tf->tf_regs.reg_rdi = argc;
-	// tf->tf_regs.reg_rsi = (uintptr_t) uargv;
+    // uintptr_t stacktop = USTACKTOP - (argv_size/sizeof(long)+1)*sizeof(long);
+    // char** uargv=(char **)(stacktop  - argc * sizeof(char *));
 
+    // argv_size = 0;
+    // for (i = 0; i < argc; i ++) {
+	// kprintf("stacktop: %x\n", stacktop);		
+    //     uargv[i] = strcpy((char *)(stacktop + argv_size ), kargv[i]);
+    //     argv_size +=  strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
+    // }
 
-	//setup argc, argv
-    uint32_t argv_size=0, i;
-    for (i = 0; i < argc; i ++) {
-        argv_size += strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
-    }
+    // stacktop = (uintptr_t)uargv - sizeof(int64_t);
+    // *(int64_t *)stacktop = argc;
 
-    uintptr_t stacktop = USTACKTOP - (argv_size/sizeof(long)+1)*sizeof(long);
-    char** uargv=(char **)(stacktop  - argc * sizeof(char *));
+	uintptr_t stacktop = USTACKTOP - argc * PGSIZE;
+	char **uargv = (char **)(stacktop - argc * sizeof(char *));
+	int i;
+	for (i = 0; i < argc; i++) {
+		uargv[i] = strcpy((char *)(stacktop + i * PGSIZE), kargv[i]);
+	}
+	stacktop = (uintptr_t) uargv;
 
-    argv_size = 0;
-    for (i = 0; i < argc; i ++) {
-        uargv[i] = strcpy((char *)(stacktop + argv_size ), kargv[i]);
-        argv_size +=  strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
-    }
-
-	stacktop = (uintptr_t)uargv - sizeof(int64_t);
-    *(int64_t *)stacktop = argc;
-
-	struct trapframe *tf = current->tf;
+    struct trapframe *tf = current->tf;
     // Keep sstatus
     uintptr_t sstatus = tf->status;
     memset(tf, 0, sizeof(struct trapframe));

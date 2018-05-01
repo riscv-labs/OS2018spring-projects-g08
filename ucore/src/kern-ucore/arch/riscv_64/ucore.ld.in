@@ -25,10 +25,19 @@ SECTIONS
     /* Adjust the address for the data segment to the next page */
     . = ALIGN(0x1000);
 
-    /* The data segment */
+    /* The data segment !COPY FROM ARM! */
+    /* We don't link .initrd into another section because
+     * QEMU only load .text and .data
+     * However, our own loader will load all sections.
+     */
     .data : {
         *(.data)
         *(.data.*)
+        . = ALIGN(4096);
+        PROVIDE(initrd_begin = .);
+        *(.initrd)
+        . = ALIGN(4096); 
+        PROVIDE(initrd_end = .);
     }
 
     .sdata : {

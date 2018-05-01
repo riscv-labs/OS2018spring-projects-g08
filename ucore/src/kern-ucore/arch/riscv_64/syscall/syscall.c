@@ -39,10 +39,10 @@ sys_wait(uint64_t arg[]) {
 
 static int
 sys_exec(uint64_t arg[]) {
-    const char *name = (const char *)arg[0];
-    int64_t argc = (int64_t)arg[1];
-    const char **argv = (const char **)arg[2];
-    return do_execve(name, argc, argv);
+	const char *name = (const char *)arg[0];
+	const char **argv = (const char **)arg[1];
+	const char **envp = (const char **)arg[2];
+	return do_execve(name, argv, envp);
 }
 
 static int

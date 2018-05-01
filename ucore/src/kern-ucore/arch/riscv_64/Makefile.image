@@ -8,37 +8,37 @@ LINK_FILE_IN	:= $(KTREE)/arch/${ARCH}/ucore.ld.in
 LINK_FILE     := $(KTREE_OBJ_ROOT)/arch/$(ARCH)/ucore.ld
 SEDFLAGS	= s/TEXT_START/$(UCONFIG_KERNEL_BASE)/
 
-## swap start
+FSIMG		:= ${T_OBJ}/sfs.img
+export DATA_FILE ?= $(FSIMG)
 
-SWAPFS_FILE := $(OBJPATH_ROOT)/swap.img
+__CMD := case sfs.img in /*) echo 1;; esac
+ifeq ($(shell $(__CMD)), 1)
+RAMDISK_FILE := $(shell echo sfs.img)
+else
+RAMDISK_FILE := $(OBJPATH_ROOT)/$(shell echo sfs.img)
+endif
+RAMDISK_OBJ := $(RAMDISK_FILE).o
 
-$(SWAPFS_FILE): | $(OBJPATH_ROOT)
-	@echo Making $@
-	$(Q)dd if=/dev/zero of=$@ bs=4KB count=8 >/dev/null 2>&1
-
-## swap end
-
-## sfs start
-
-SFSIMG_FILE := $(OBJPATH_ROOT)/sfs-orig.img
-
-## sfs end
 
 $(KERNEL_IMG): $(KERNEL_ELF)
 	@echo Making $@
 	cd $(TOPDIR)/../riscv-pk && rm -rf build && mkdir build && cd build && ../configure --prefix=$(RISCV) --host=riscv64-unknown-elf --with-payload=$(KERNEL_ELF) --disable-fp-emulation --enable-logo && make && cp bbl $(KERNEL_IMG)
 
-$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(SWAPFS_FILE) $(SFSIMG_FILE)
+$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) 
 	@echo Linking uCore
-	mv $(SWAPFS_FILE) .
-	mv $(SFSIMG_FILE) ./sfs.img
-	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) -o $@ --format=binary swap.img sfs.img --format=default
-	mv swap.img $(SWAPFS_FILE)
-	mv sfs.img $(SFSIMG_FILE)
+	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) -o $@
 
 $(LINK_FILE): $(LINK_FILE_IN) $(KCONFIG_AUTOCONFIG)
 	@echo "creating linker script"
 	@sed  "$(SEDFLAGS)" < $< > $@
+
+INITRD_PIGGY_S:=$(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools/initrd.S
+$(RAMDISK_OBJ): $(RAMDISK_FILE)
+	@echo "Linking Initrd into kernel, using $(RAMDISK_FILE)"
+	@mkdir -p $(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools
+	@sed "s#DATA_FILE#$(RAMDISK_FILE)#" < $(KTREE)/arch/$(ARCH)/tools/initrd.S.in > $(INITRD_PIGGY_S)
+	$(Q)$(TARGET_CC) -c $(INITRD_PIGGY_S) -o $@
+	$(Q)rm -f $(INITRD_PIGGY_S)
 
 .PHONY: all clean FORCE
 all: $(KERNEL_IMG)
