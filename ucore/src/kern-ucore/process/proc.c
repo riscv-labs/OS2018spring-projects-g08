@@ -783,6 +783,13 @@ map_ph(int fd, struct proghdr *ph, struct mm_struct *mm, uint32_t * pbias,
 	if (vm_flags & VM_WRITE)
 		ptep_set_u_write(&perm);
 
+#ifdef ARCH_RISCV64
+	// modify the perm bits here for RISC-V
+	if (vm_flags & VM_READ) perm |= PTE_R;
+	if (vm_flags & VM_WRITE) perm |= (PTE_W | PTE_R);
+	if (vm_flags & VM_EXEC) perm |= PTE_X;
+#endif
+
 	if (pbias) {
 		bias = *pbias;
 	}

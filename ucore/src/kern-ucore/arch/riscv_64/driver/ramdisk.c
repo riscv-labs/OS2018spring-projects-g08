@@ -40,6 +40,7 @@ static int ramdisk_write(struct ide_device *dev, size_t secno, const void *src,
 void ramdisk_init(struct ide_device *dev) {
     memset(dev, 0, sizeof(struct ide_device));
     assert(INITRD_SIZE() % SECTSIZE == 0);
+    kprintf("INITRD_SIZE():%x\n", INITRD_SIZE());
     // char *_initrd_begin;
     // char *_initrd_end;
     // if (devno == SWAP_DEV_NO) {

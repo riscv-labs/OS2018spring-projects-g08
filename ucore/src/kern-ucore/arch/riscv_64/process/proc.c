@@ -5,6 +5,7 @@
 #include <types.h>
 #include <stdlib.h>
 #include <mp.h>
+#include <memlayout.h>
 
 void forkret(void);
 void forkrets(struct trapframe *tf);
@@ -114,40 +115,45 @@ init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 		 int argc, char **kargv, int envc, char **kenvp)
 {
     // //setup argc, argv
-    // uint64_t argv_size=0, i;
-    // for (i = 0; i < argc; i ++) {
-	// 	kprintf("argv: %s\n", kargv[i]);
-    //     argv_size += strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
-    // }
+    uint32_t argv_size=0, i;
+    for (i = 0; i < argc; i ++) {
+        argv_size += strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
+    }
 
-    // uintptr_t stacktop = USTACKTOP - (argv_size/sizeof(long)+1)*sizeof(long);
-    // char** uargv=(char **)(stacktop  - argc * sizeof(char *));
+    uintptr_t stacktop = USTACKTOP - (argv_size/sizeof(long)+1)*sizeof(long);
+    char** uargv=(char **)(stacktop  - argc * sizeof(char *));
 
-    // argv_size = 0;
-    // for (i = 0; i < argc; i ++) {
-	// kprintf("stacktop: %x\n", stacktop);		
-    //     uargv[i] = strcpy((char *)(stacktop + argv_size ), kargv[i]);
-    //     argv_size +=  strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
-    // }
+    argv_size = 0;
+    for (i = 0; i < argc; i ++) {
+        uargv[i] = strcpy((char *)(stacktop + argv_size ), kargv[i]);
+        argv_size +=  strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
+    }
 
-    // stacktop = (uintptr_t)uargv - sizeof(int64_t);
-    // *(int64_t *)stacktop = argc;
-
-	uintptr_t stacktop = USTACKTOP - argc * PGSIZE;
-	char **uargv = (char **)(stacktop - argc * sizeof(char *));
-	int i;
-	for (i = 0; i < argc; i++) {
-		uargv[i] = strcpy((char *)(stacktop + i * PGSIZE), kargv[i]);
-	}
-	stacktop = (uintptr_t) uargv;
-
-    struct trapframe *tf = current->tf;
+    stacktop = (uintptr_t)uargv - sizeof(int64_t);
+    *(int64_t *)stacktop = argc;
+	struct trapframe *tf = current->tf;
     // Keep sstatus
     uintptr_t sstatus = tf->status;
     memset(tf, 0, sizeof(struct trapframe));
     tf->gpr.sp = stacktop;
     tf->epc = elf->e_entry;
     tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
+
+	// uintptr_t stacktop = USTACKTOP - argc * PGSIZE;
+	// char **uargv = (char **)(stacktop - argc * sizeof(char *));
+	// int i;
+	// for (i = 0; i < argc; i++) {
+	// 	uargv[i] = strcpy((char *)(stacktop + i * PGSIZE), kargv[i]);
+	// }
+	// stacktop = (uintptr_t) uargv;
+
+    // struct trapframe *tf = current->tf;
+    // // Keep sstatus
+    // uintptr_t sstatus = tf->status;
+    // memset(tf, 0, sizeof(struct trapframe));
+    // tf->gpr.sp = stacktop;
+    // tf->epc = elf->e_entry;
+    // tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
 
 	return 0;
 }

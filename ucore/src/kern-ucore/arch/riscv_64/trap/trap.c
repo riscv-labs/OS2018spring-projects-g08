@@ -228,7 +228,9 @@ void exception_handler(struct trapframe *tf) {
             kprintf("Load access fault\n");
             break;
         case CAUSE_MISALIGNED_STORE:
+            print_trapframe(tf);
             kprintf("AMO address misaligned\n");
+            assert(0);
             break;
         case CAUSE_STORE_ACCESS:
             kprintf("Store/AMO access fault\n");
@@ -250,6 +252,7 @@ void exception_handler(struct trapframe *tf) {
             kprintf("Environment call from M-mode\n");
             break;
         case CAUSE_FETCH_PAGE_FAULT:
+            print_trapframe(tf);
             panic("Instruction page fault\n");
             break;
         case CAUSE_LOAD_PAGE_FAULT:
