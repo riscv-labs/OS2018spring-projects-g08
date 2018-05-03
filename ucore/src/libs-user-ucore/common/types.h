@@ -8,7 +8,11 @@
 #define CHAR_BIT        8
 
 /* Represents true-or-false values */
+#ifdef RISCV_64
+typedef int64_t bool;
+#else
 typedef int bool;
+#endif
 
 /* Explicitly-sized versions of integer types */
 typedef char int8_t;

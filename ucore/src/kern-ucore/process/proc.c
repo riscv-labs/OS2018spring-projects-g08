@@ -1032,6 +1032,13 @@ static int load_icode(int fd, int argc, char **kargv, int envc, char **kenvp)
 		goto bad_cleanup_mmap;
 	}
 
+#ifdef RISCV_64
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-PGSIZE , PTE_USER) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-2*PGSIZE , PTE_USER) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-3*PGSIZE , PTE_USER) != NULL);
+    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL);
+#endif
+
 	if (is_dynamic) {
 		elf->e_entry += bias;
 
@@ -1892,38 +1899,47 @@ int do_shmem(uintptr_t * addr_store, size_t len, uint32_t mmap_flags)
 
 	int ret = -E_INVAL;
 
-	uintptr_t addr;
-
+	uintptr_t addr = 0;
+	kprintf("addr0:%x\n", addr);
 	lock_mm(mm);
 	if (!copy_from_user(mm, &addr, addr_store, sizeof(uintptr_t), 1)) {
 		goto out_unlock;
 	}
-
+	kprintf("addr_cp:%x\n", addr);
 	uintptr_t start = ROUNDDOWN(addr, PGSIZE), end =
 	    ROUNDUP(addr + len, PGSIZE);
 	addr = start, len = end - start;
-
+	kprintf("addr_start:%x\n", addr);
 	uint32_t vm_flags = VM_READ;
 	if (mmap_flags & MMAP_WRITE)
 		vm_flags |= VM_WRITE;
 	if (mmap_flags & MMAP_STACK)
 		vm_flags |= VM_STACK;
 
+#ifdef RISCV_64
+	if (mmap_flags & MMAP_WRITE)
+		vm_flags |= VM_WRITE | VM_READ;
+#endif
+
 	ret = -E_NO_MEM;
 	if (addr == 0) {
 		if ((addr = get_unmapped_area(mm, len)) == 0) {
 			goto out_unlock;
 		}
+		kprintf("addr_map:%x\n", addr);
 	}
+	kprintf("addr:%x\n", addr);
 	struct shmem_struct *shmem;
 	if ((shmem = shmem_create(len)) == NULL) {
 		goto out_unlock;
 	}
+	kprintf("addr1:%x\n", addr);
 	if ((ret = mm_map_shmem(mm, addr, vm_flags, shmem, NULL)) != 0) {
 		assert(shmem_ref(shmem) == 0);
 		shmem_destroy(shmem);
 		goto out_unlock;
 	}
+	kprintf("addr2:%x\n", addr);
 	copy_to_user(mm, addr_store, &addr, sizeof(uintptr_t));
 out_unlock:
 	unlock_mm(mm);

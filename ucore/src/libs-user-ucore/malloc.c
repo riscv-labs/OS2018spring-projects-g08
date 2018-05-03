@@ -70,9 +70,40 @@ static bool morecore_shmem_locked(size_t nu)
 		return 0;
 	}
 	header_t *p = (void *)mem;
+	cprintf("p->s.type addr:%lx\n", &(p->s.type));
+	cprintf("p->s.size addr:%lx\n", &(p->s.size));
+	cprintf("p->s.header addr:%lx\n", &(p->s.ptr));
+	cprintf("p addr:%lx\n", p);
+
+	cprintf("p->s.ptr:%lx\n", p->s.ptr);
+	cprintf("*p:%lx\n", *p);
+	cprintf("mem:%lx\n", mem);
+	cprintf("size:%ld\n", size);
 	p->s.size = size / sizeof(header_t);
 	p->s.type = 1;
-	free_locked((void *)(p + 1));
+	// uintptr_t sp;
+	// asm volatile(
+	// "sd sp, %0\n"
+	// "sd sp, %0\n"
+	// : "=m"(sp)
+	// :
+	// : "memory");
+	// cprintf("sp: %x\n", sp);
+
+	// asm volatile(
+	// "sd sp, %0"
+	// : "=m"(sp)
+	// :
+	// : "memory");
+	// cprintf("sp: %x\n", sp);
+	// cprintf("p->s.ptr:%x\n", p->s.ptr);
+	cprintf("before free,p->s.type:%d\n", p->s.type);	
+	cprintf("before free,p->s.type:%d\n", p->s.type);
+	cprintf("p->s.size:%d\n", p->s.size);
+	cprintf("before free,p->s.size:%d\n", p->s.size);
+	cprintf("before free,p->s.ptr:%lx\n", p->s.ptr);
+	cprintf("p:%lx\n", p);
+	free_locked((header_t *)(p + 1));
 	return 1;
 }
 
@@ -92,9 +123,13 @@ static void *malloc_locked(size_t size, bool type)
 		base.s.ptr = freep = prevp = &base;
 		base.s.size = 0;
 	}
-
+	cprintf("1\n");
 	for (p = prevp->s.ptr;; prevp = p, p = p->s.ptr) {
+		cprintf("p:%x\n", p);
+		cprintf("p.type:%d\n", p->s.type);
+		cprintf("2\n");
 		if (p->s.type == type && p->s.size >= nunits) {
+			cprintf("3\n");
 			if (p->s.size == nunits) {
 				prevp->s.ptr = p->s.ptr;
 			} else {
@@ -107,7 +142,9 @@ static void *malloc_locked(size_t size, bool type)
 			freep = prevp;
 			return (void *)(p + 1);
 		}
+		cprintf("4\n");
 		if (p == freep) {
+			cprintf("5\n");
 			bool(*morecore_locked) (size_t nu);
 			morecore_locked =
 			    (!type) ? morecore_brk_locked :
@@ -116,12 +153,17 @@ static void *malloc_locked(size_t size, bool type)
 				return NULL;
 			}
 		}
+		cprintf("6\n");
 	}
 }
 
 static void free_locked(void *ap)
 {
 	header_t *bp = ((header_t *) ap) - 1, *p;
+	cprintf("bp:%lx\n", bp);
+	cprintf("bp.type:%ld\n", bp->s.type);
+	cprintf("bp.size:%ld\n", bp->s.size);
+	cprintf("bp.ptr:%lx\n", bp->s.ptr);
 
 	for (p = freep; !(bp > p && bp < p->s.ptr); p = p->s.ptr) {
 		if (p >= p->s.ptr && (bp > p || bp < p->s.ptr)) {

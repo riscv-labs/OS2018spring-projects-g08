@@ -46,9 +46,9 @@ int
 copy_thread(uint32_t clone_flags, struct proc_struct *proc, uintptr_t rsp,
 	    struct trapframe *tf)
 {
-	uintptr_t kstacktop = proc->kstack + KSTACKSIZE;
-	proc->tf = (struct trapframe *)kstacktop - 1;
-	*(proc->tf) = *tf;
+    proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE) - 1;
+    *(proc->tf) = *tf;
+
     // Set a0 to 0 so a child process knows it's just forked
     proc->tf->gpr.a0 = 0;
     proc->tf->gpr.sp = (rsp == 0) ? (uintptr_t)proc->tf - 4 : rsp;
@@ -86,12 +86,6 @@ void forkret(void)
 
 int kernel_execve(const char *name, const char **argv, const char **kenvp)
 {
-	// int ret;
-	// asm volatile ("int %1;":"=a" (ret)
-	// 	      :"i"(T_SYSCALL), "0"(SYS_exec), "D"(name), "S"(argv),
-	// 	      "d"(kenvp)
-	// 	      :"memory");
-	// return ret;
 	int64_t argc = 0, ret;
     while (argv[argc] != NULL) {
         argc ++;
@@ -114,47 +108,25 @@ int
 init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 		 int argc, char **kargv, int envc, char **kenvp)
 {
-    // //setup argc, argv
-    uint32_t argv_size=0, i;
-    for (i = 0; i < argc; i ++) {
-        argv_size += strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
-    }
+	uintptr_t stacktop = USTACKTOP - argc * PGSIZE;
+	char **uargv = (char **)(stacktop - argc * sizeof(char *));
+	int i;
+	for (i = 0; i < argc; i++) {
+		uargv[i] = strcpy((char *)(stacktop + i * PGSIZE), kargv[i]);
+	}
+	stacktop = (uintptr_t) uargv - sizeof(uintptr_t);
+	*(uintptr_t *)stacktop = argc;
 
-    uintptr_t stacktop = USTACKTOP - (argv_size/sizeof(long)+1)*sizeof(long);
-    char** uargv=(char **)(stacktop  - argc * sizeof(char *));
-
-    argv_size = 0;
-    for (i = 0; i < argc; i ++) {
-        uargv[i] = strcpy((char *)(stacktop + argv_size ), kargv[i]);
-        argv_size +=  strnlen(kargv[i],EXEC_MAX_ARG_LEN + 1)+1;
-    }
-
-    stacktop = (uintptr_t)uargv - sizeof(int64_t);
-    *(int64_t *)stacktop = argc;
-	struct trapframe *tf = current->tf;
-    // Keep sstatus
-    uintptr_t sstatus = tf->status;
-    memset(tf, 0, sizeof(struct trapframe));
-    tf->gpr.sp = stacktop;
-    tf->epc = elf->e_entry;
-    tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
-
-	// uintptr_t stacktop = USTACKTOP - argc * PGSIZE;
-	// char **uargv = (char **)(stacktop - argc * sizeof(char *));
-	// int i;
-	// for (i = 0; i < argc; i++) {
-	// 	uargv[i] = strcpy((char *)(stacktop + i * PGSIZE), kargv[i]);
-	// }
-	// stacktop = (uintptr_t) uargv;
-
-    // struct trapframe *tf = current->tf;
-    // // Keep sstatus
-    // uintptr_t sstatus = tf->status;
-    // memset(tf, 0, sizeof(struct trapframe));
-    // tf->gpr.sp = stacktop;
-    // tf->epc = elf->e_entry;
-    // tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
-
+	struct trapframe *tf = proc->tf;
+	// Keep sstatus
+	uintptr_t sstatus = tf->status;
+	memset(tf, 0, sizeof(struct trapframe));
+	tf->gpr.sp = stacktop;
+	tf->epc = elf->e_entry;
+	tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
+	kprintf("=============================\n");
+	kprintf("stacktop:%x\n", stacktop);
+	kprintf("=============================\n");
 	return 0;
 }
 

@@ -52,56 +52,56 @@ bool trap_in_kernel(struct trapframe *tf) {
 void print_trapframe(struct trapframe *tf) {
     kprintf("trapframe at %p\n", tf);
     print_regs(&tf->gpr);
-    kprintf("  status   0x%08x\n", tf->status);
-    kprintf("  epc      0x%08x\n", tf->epc);
-    kprintf("  badvaddr 0x%08x\n", tf->badvaddr);
-    kprintf("  cause    0x%08x\n", tf->cause);
+    kprintf("  status   0x%016lx\n", tf->status);
+    kprintf("  epc      0x%016lx\n", tf->epc);
+    kprintf("  badvaddr 0x%016lx\n", tf->badvaddr);
+    kprintf("  cause    0x%016lx\n", tf->cause);
 }
 
 void print_regs(struct pushregs *gpr) {
-    kprintf("  zero     0x%08x\n", gpr->zero);
-    kprintf("  ra       0x%08x\n", gpr->ra);
-    kprintf("  sp       0x%08x\n", gpr->sp);
-    kprintf("  gp       0x%08x\n", gpr->gp);
-    kprintf("  tp       0x%08x\n", gpr->tp);
-    kprintf("  t0       0x%08x\n", gpr->t0);
-    kprintf("  t1       0x%08x\n", gpr->t1);
-    kprintf("  t2       0x%08x\n", gpr->t2);
-    kprintf("  s0       0x%08x\n", gpr->s0);
-    kprintf("  s1       0x%08x\n", gpr->s1);
-    kprintf("  a0       0x%08x\n", gpr->a0);
-    kprintf("  a1       0x%08x\n", gpr->a1);
-    kprintf("  a2       0x%08x\n", gpr->a2);
-    kprintf("  a3       0x%08x\n", gpr->a3);
-    kprintf("  a4       0x%08x\n", gpr->a4);
-    kprintf("  a5       0x%08x\n", gpr->a5);
-    kprintf("  a6       0x%08x\n", gpr->a6);
-    kprintf("  a7       0x%08x\n", gpr->a7);
-    kprintf("  s2       0x%08x\n", gpr->s2);
-    kprintf("  s3       0x%08x\n", gpr->s3);
-    kprintf("  s4       0x%08x\n", gpr->s4);
-    kprintf("  s5       0x%08x\n", gpr->s5);
-    kprintf("  s6       0x%08x\n", gpr->s6);
-    kprintf("  s7       0x%08x\n", gpr->s7);
-    kprintf("  s8       0x%08x\n", gpr->s8);
-    kprintf("  s9       0x%08x\n", gpr->s9);
-    kprintf("  s10      0x%08x\n", gpr->s10);
-    kprintf("  s11      0x%08x\n", gpr->s11);
-    kprintf("  t3       0x%08x\n", gpr->t3);
-    kprintf("  t4       0x%08x\n", gpr->t4);
-    kprintf("  t5       0x%08x\n", gpr->t5);
-    kprintf("  t6       0x%08x\n", gpr->t6);
+    kprintf("  zero     0x%016lx\n", gpr->zero);
+    kprintf("  ra       0x%016lx\n", gpr->ra);
+    kprintf("  sp       0x%016lx\n", gpr->sp);
+    kprintf("  gp       0x%016lx\n", gpr->gp);
+    kprintf("  tp       0x%016lx\n", gpr->tp);
+    kprintf("  t0       0x%016lx\n", gpr->t0);
+    kprintf("  t1       0x%016lx\n", gpr->t1);
+    kprintf("  t2       0x%016lx\n", gpr->t2);
+    kprintf("  s0       0x%016lx\n", gpr->s0);
+    kprintf("  s1       0x%016lx\n", gpr->s1);
+    kprintf("  a0       0x%016lx\n", gpr->a0);
+    kprintf("  a1       0x%016lx\n", gpr->a1);
+    kprintf("  a2       0x%016lx\n", gpr->a2);
+    kprintf("  a3       0x%016lx\n", gpr->a3);
+    kprintf("  a4       0x%016lx\n", gpr->a4);
+    kprintf("  a5       0x%016lx\n", gpr->a5);
+    kprintf("  a6       0x%016lx\n", gpr->a6);
+    kprintf("  a7       0x%016lx\n", gpr->a7);
+    kprintf("  s2       0x%016lx\n", gpr->s2);
+    kprintf("  s3       0x%016lx\n", gpr->s3);
+    kprintf("  s4       0x%016lx\n", gpr->s4);
+    kprintf("  s5       0x%016lx\n", gpr->s5);
+    kprintf("  s6       0x%016lx\n", gpr->s6);
+    kprintf("  s7       0x%016lx\n", gpr->s7);
+    kprintf("  s8       0x%016lx\n", gpr->s8);
+    kprintf("  s9       0x%016lx\n", gpr->s9);
+    kprintf("  s10      0x%016lx\n", gpr->s10);
+    kprintf("  s11      0x%016lx\n", gpr->s11);
+    kprintf("  t3       0x%016lx\n", gpr->t3);
+    kprintf("  t4       0x%016lx\n", gpr->t4);
+    kprintf("  t5       0x%016lx\n", gpr->t5);
+    kprintf("  t6       0x%016lx\n", gpr->t6);
 }
 
 static inline void print_pgfault(struct trapframe *tf) {
     // The page fault test is in kernel anyway, so print a 'K/' here
-    kprintf("page falut at 0x%08x: K/", tf->badvaddr);
+    kprintf("page falut at 0x%016lx: K/", tf->badvaddr);
     if (tf->cause == CAUSE_LOAD_PAGE_FAULT) {
         kprintf("R\n");
     } else if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
         kprintf("W\n");
     } else {
-        kprintf("0x%08x\n", tf->cause);
+        kprintf("0x%016lx\n", tf->cause);
     }
 }
 
@@ -121,29 +121,29 @@ static int pgfault_handler(struct trapframe *tf) {
         }
         mm = current->mm;
     }
-    uint64_t cause;
-    uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);    
-    pte_t* ptep = get_pte(mm->pgdir, addr, 0);
-    if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
-        if (ptep == NULL || ptep_present(ptep)) {
-            if (ptep == NULL) {
-                kprintf("pte is null\n");
-            }
-            cause = 3;
-        }
-        else {
-            cause = 2;
-        }
-    }
-    else {
-        if (ptep == NULL || ptep_present(ptep)) {
-            cause = 1;
-        }
-        else {
-            cause = 0;
-        }
-    }
-    return do_pgfault(mm, cause, tf->badvaddr);
+    // uint64_t cause;
+    // uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);    
+    // pte_t* ptep = get_pte(mm->pgdir, addr, 0);
+    // if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
+    //     if (ptep == NULL || ptep_present(ptep)) {
+    //         if (ptep == NULL) {
+    //             kprintf("pte is null\n");
+    //         }
+    //         cause = 3;
+    //     }
+    //     else {
+    //         cause = 2;
+    //     }
+    // }
+    // else {
+    //     if (ptep == NULL || ptep_present(ptep)) {
+    //         cause = 1;
+    //     }
+    //     else {
+    //         cause = 0;
+    //     }
+    // }
+    return do_pgfault(mm, 3, tf->badvaddr);
 }
 
 static volatile int in_swap_tick_event = 0;
