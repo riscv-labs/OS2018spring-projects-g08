@@ -743,7 +743,6 @@ static void check_vmm(void)
 {
 	size_t nr_used_pages_store = nr_used_pages();
 	size_t slab_allocated_store = slab_allocated();
-
 	check_vma_struct();
 	check_pgfault();
 
@@ -957,6 +956,11 @@ int do_pgfault(struct mm_struct *mm, machine_word_t error_code, uintptr_t addr)
 	if (vma->vm_flags & VM_WRITE) {
 		ptep_set_u_write(&perm);
 	}
+#ifdef RISCV_64
+	if (vma->vm_flags & VM_EXEC) {
+		perm |= PTE_X;
+	}
+#endif
 #endif
 	addr = ROUNDDOWN(addr, PGSIZE);
 

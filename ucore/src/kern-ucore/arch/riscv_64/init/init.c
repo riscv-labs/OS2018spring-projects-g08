@@ -11,7 +11,10 @@
 #include <kio.h>
 #include <string.h>
 #include <trap.h>
-//#include <mp.h>
+#include <vmm.h>
+#include <ide.h>
+#include <swap.h>
+#include <mp.h>
 //#include <mod.h>
 
 int kern_init(void) __attribute__((noreturn));
@@ -30,26 +33,35 @@ int kern_init(void) {
     print_kerninfo();
 
 	/* Only to initialize lcpu_count. */
-	//mp_init();
+	mp_init();
+
+
+	size_t nr_used_pages_store = nr_used_pages();
 
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
+    pmm_init_ap();
 
     pic_init();  // init interrupt controller
     idt_init();  // init interrupt descriptor table
 
+    vmm_init();                 // init virtual memory management
+    sched_init();		// init scheduler
+    proc_init();                // init process table
+    sync_init();		// init sync struct
+
+    ide_init();                 // init ide devices
+#ifdef UCONFIG_SWAP
+	swap_init();		// init swap
+#endif
+    fs_init();
     // rdtime in mbare mode crashes
     clock_init();  // init clock interrupt
     //mod_init();
 
     intr_enable();  // enable irq interrupt
 
-    // LAB1: CAHLLENGE 1 If you try to do it, uncomment lab1_switch_test()
-    // user/kernel mode switch test
-    // lab1_switch_test();
-    /* do nothing */
-    while (1)
-        ;
+    cpu_idle();                 // run idle process
 }
 
 void __attribute__((noinline))
@@ -58,14 +70,14 @@ grade_backtrace2(int arg0, int arg1, int arg2, int arg3) {
 }
 
 void __attribute__((noinline)) grade_backtrace1(int arg0, int arg1) {
-    grade_backtrace2(arg0, (int64_t)&arg0, arg1, (int64_t)&arg1);
+    grade_backtrace2(arg0, (int)&arg0, arg1, (int)&arg1);
 }
 
 void __attribute__((noinline)) grade_backtrace0(int arg0, int arg1, int arg2) {
     grade_backtrace1(arg0, arg2);
 }
 
-void grade_backtrace(void) { grade_backtrace0(0, (int64_t)kern_init, 0xffff0000); }
+void grade_backtrace(void) { grade_backtrace0(0, (int)kern_init, 0xffff0000); }
 
 static void lab1_print_cur_status(void) {
     static int round = 0;

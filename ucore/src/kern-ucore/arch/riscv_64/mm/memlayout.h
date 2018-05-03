@@ -18,10 +18,24 @@
  *                            |    Remapped Physical Memory     | RW/-- KMEMSIZE
  *                            |                                 |
  *     KERNBASE ------------> +---------------------------------+ 0xC0000000
+ *                            |        Invalid Memory (*)       | --/--
+ *     USERTOP -------------> +---------------------------------+ 0xB0000000
+ *                            |           User stack            |
+ *                            +---------------------------------+
  *                            |                                 |
- *                            |                                 |
+ *                            :                                 :
+ *                            |         ~~~~~~~~~~~~~~~~        |
+ *                            :                                 :
  *                            |                                 |
  *                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                            |       User Program & Heap       |
+ *     UTEXT ---------------> +---------------------------------+ 0x00800000
+ *                            |        Invalid Memory (*)       | --/--
+ *                            |  - - - - - - - - - - - - - - -  |
+ *                            |    User STAB Data (optional)    |
+ *     USERBASE, USTAB------> +---------------------------------+ 0x00200000
+ *                            |        Invalid Memory (*)       | --/--
+ *     0 -------------------> +---------------------------------+ 0x00000000
  * (*) Note: The kernel ensures that "Invalid Memory" is *never* mapped.
  *     "Empty Memory" is normally unmapped, but user programs may map pages
  *     there if desired.
@@ -31,8 +45,11 @@
 /* All physical memory mapped at this address */
 // #define KERNBASE            0xC0000000
 #define KERNBASE            0x80200000
+#define PBASE				KERNBASE
 #define KMEMSIZE            0x38000000                  // the maximum amount of physical memory
 #define KERNTOP             (KERNBASE + KMEMSIZE)
+
+#define DISK_FS_VBASE       KERNTOP
 
 /* *
  * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains
@@ -45,14 +62,28 @@
 #define KSTACKPAGE          2                           // # of pages in kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
 
+#define USERTOP             0x80000000
+#define USTACKTOP           USERTOP
+#define USTACKPAGE          256                         // # of pages in user stack
+#define USTACKSIZE          (USTACKPAGE * PGSIZE)       // sizeof user stack
+
+#define USERBASE            0x00200000
+#define UTEXT               0x00800000                  // where user programs generally begin
+#define USTAB               USERBASE                    // the location of the user STABS data structure
+
+#define USER_ACCESS(start, end)                     \
+(USERBASE <= (start) && (start) < (end) && (end) <= USERTOP)
+
+#define KERN_ACCESS(start, end)                     \
+(KERNBASE <= (start) && (start) < (end) && (end) <= KERNTOP)
+
 #ifndef __ASSEMBLER__
 
 #include <types.h>
 #include <atomic.h>
 #include <list.h>
+#include <mmu.h>
 
-typedef uintptr_t pte_t;
-typedef uintptr_t pde_t;
 
 /* *
  * struct Page - Page descriptor structures. Each Page describes one
@@ -60,16 +91,23 @@ typedef uintptr_t pde_t;
  * that convert Page to other data types, such as physical address.
  * */
 struct Page {
-    int64_t ref;                        // page frame's reference counter
+    atomic_t ref;                        // page frame's reference counter
     uint64_t flags;                 // array of flags that describe the status of the page frame
 	unsigned int property;	// used in buddy system, stores the order (the X in 2^X) of the continuous memory block
 	int zone_num;		// used in buddy system, the No. of zone which the page belongs to
     list_entry_t page_link;         // free list link
+    swap_entry_t index;	// stores a swapped-out page identifier
+	list_entry_t swap_link;	// swap hash link
 };
 
 /* Flags describing the status of a page frame */
 #define PG_reserved                 0       // if this bit=1: the Page is reserved for kernel, cannot be used in alloc/free_pages; otherwise, this bit=0
 #define PG_property                 1       // if this bit=1: the Page is the head page of a free memory block(contains some continuous_addrress pages), and can be used in alloc_pages; if this bit=0: if the Page is the the head page of a free memory block, then this Page and the memory block is alloced. Or this Page isn't the head page.
+#define PG_slab                     2	// page frame is included in a slab
+#define PG_dirty                    3	// the page has been modified
+#define PG_swap                     4	// the page is in the active or inactive page list (and swap hash table)
+#define PG_active                   5	// the page is in the active page list
+#define PG_IO                       6	//dma page, never free in unmap_page
 
 #define SetPageReserved(page)       set_bit(PG_reserved, &((page)->flags))
 #define ClearPageReserved(page)     clear_bit(PG_reserved, &((page)->flags))
@@ -77,6 +115,21 @@ struct Page {
 #define SetPageProperty(page)       set_bit(PG_property, &((page)->flags))
 #define ClearPageProperty(page)     clear_bit(PG_property, &((page)->flags))
 #define PageProperty(page)          test_bit(PG_property, &((page)->flags))
+#define SetPageSlab(page)           set_bit(PG_slab, &((page)->flags))
+#define ClearPageSlab(page)         clear_bit(PG_slab, &((page)->flags))
+#define PageSlab(page)              test_bit(PG_slab, &((page)->flags))
+#define SetPageDirty(page)          set_bit(PG_dirty, &((page)->flags))
+#define ClearPageDirty(page)        clear_bit(PG_dirty, &((page)->flags))
+#define PageDirty(page)             test_bit(PG_dirty, &((page)->flags))
+#define SetPageSwap(page)           set_bit(PG_swap, &((page)->flags))
+#define ClearPageSwap(page)         clear_bit(PG_swap, &((page)->flags))
+#define PageSwap(page)              test_bit(PG_swap, &((page)->flags))
+#define SetPageActive(page)         set_bit(PG_active, &((page)->flags))
+#define ClearPageActive(page)       clear_bit(PG_active, &((page)->flags))
+#define PageActive(page)            test_bit(PG_active, &((page)->flags))
+#define SetPageIO(page)         set_bit(PG_IO, &((page)->flags))
+#define ClearPageIO(page)       clear_bit(PG_IO, &((page)->flags))
+#define PageIO(page)            test_bit(PG_IO, &((page)->flags))
 
 // convert list entry to page
 #define le2page(le, member)                 \

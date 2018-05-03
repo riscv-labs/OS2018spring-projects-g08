@@ -53,7 +53,7 @@
 #define PGADDR(d1, d0, t, o) ((uintptr_t)((d1) << PDX1SHIFT | (d0) << PDX0SHIFT | (t) << PTXSHIFT | (o)))
 
 // address in page table or page directory entry
-#define PTE_ADDR(pte)   (((uintptr_t)(pte) & ~0x3FF) << 2)
+#define PTE_ADDR(pte)   (((uintptr_t)(pte) & ~0x3FF) << (PTXSHIFT - PTE_PPN_SHIFT))
 #define PDE_ADDR(pde)   PTE_ADDR(pde)
 
 /* page directory and page table constants */
@@ -69,6 +69,30 @@
 #define PDX0SHIFT       21                      // offset of PDX[0] in a linear address
 #define PDX1SHIFT		30						// offset of PDX[1] in a linear address
 #define PTE_PPN_SHIFT   10                      // offset of PPN in a physical address
+
+
+// for ucore+ kern-ucore/mm/pmm.c
+// #define PTXSHIFT        12     // has been defined above
+#define PMXSHIFT		PDX0SHIFT
+#define PUXSHIFT		PDX1SHIFT
+#define PGXSHIFT		PDX1SHIFT
+
+// page directory index
+#define PMX(la) PDX0(la)
+#define PUX(la) PDX1(la)
+#define PGX(la) PDX1(la)
+
+// address in page table or page directory entry
+#define PMD_ADDR(pmd)   PTE_ADDR(pmd)
+#define PUD_ADDR(pud)   PTE_ADDR(pud)
+#define PGD_ADDR(pgd)   PTE_ADDR(pgd)
+
+/* page directory and page table constants */
+// in ucore+ PTSIZE means bytes mapped by a pmd entry
+#define PMSIZE			(1LLU * NPDEENTRY * PTSIZE) // bytes mapped by a pud entry
+#define PUSIZE			PMSIZE // bytes mapped by a pgd entry
+
+
 
 // page table entry (PTE) fields
 #define PTE_V     0x001 // Valid
@@ -89,5 +113,169 @@
 #define READ_WRITE_EXEC (PTE_R | PTE_W | PTE_X | PTE_V)
 
 #define PTE_USER (PTE_R | PTE_W | PTE_X | PTE_U | PTE_V)
+
+
+// for ucore+ kern-ucore/mm/pmm.c
+#define PTE_SWAP        (PTE_A | PTE_D)
+#define PTE_P           PTE_V
+
+
+#ifndef __ASSEMBLER__
+
+typedef uintptr_t pgd_t;
+typedef uintptr_t pud_t;
+typedef uintptr_t pmd_t;
+typedef uintptr_t pte_t;
+typedef pte_t swap_entry_t;
+typedef pte_t pte_perm_t;
+
+static inline void ptep_map(pte_t * ptep, uintptr_t pa)
+{
+	*ptep = (pa >> (PGSHIFT - PTE_PPN_SHIFT) | PTE_V);
+}
+
+static inline void ptep_unmap(pte_t * ptep)
+{
+	*ptep = 0;
+}
+
+static inline int ptep_invalid(pte_t * ptep)
+{
+	return (*ptep == 0);
+}
+
+static inline int ptep_present(pte_t * ptep)
+{
+	return (*ptep & PTE_V);
+}
+
+static inline int ptep_s_read(pte_t * ptep)
+{
+	return (*ptep & PTE_R);
+}
+
+static inline int ptep_s_write(pte_t * ptep)
+{
+	return (*ptep & PTE_W);
+}
+
+static inline int ptep_u_read(pte_t * ptep)
+{
+	return ((*ptep & PTE_U) & (*ptep & PTE_R));
+}
+
+static inline int ptep_u_write(pte_t * ptep)
+{
+	return ((*ptep & PTE_U) && (*ptep & PTE_W));
+}
+
+static inline void ptep_set_s_read(pte_t * ptep)
+{
+    *ptep |= PTE_R;
+}
+
+static inline void ptep_set_s_write(pte_t * ptep)
+{
+    *ptep |= PTE_W | PTE_R;
+}
+
+static inline void ptep_set_u_read(pte_t * ptep)
+{
+	*ptep |= PTE_U | PTE_R;
+}
+
+static inline void ptep_set_u_write(pte_t * ptep)
+{
+	*ptep |= PTE_W | PTE_R | PTE_U;
+}
+
+static inline void ptep_set_u(pte_t * ptep)
+{
+	*ptep |= PTE_U;
+}
+
+static inline void ptep_unset_u(pte_t * ptep)
+{
+	*ptep &= ~PTE_U;
+}
+
+static inline void ptep_unset_s_read(pte_t * ptep)
+{
+    *ptep &= (~(PTE_R | PTE_W));
+}
+
+static inline void ptep_unset_s_write(pte_t * ptep)
+{
+	*ptep &= (~PTE_W);
+}
+
+static inline void ptep_unset_u_read(pte_t * ptep)
+{
+    *ptep &= (~(PTE_R | PTE_W | PTE_U));
+}
+
+static inline void ptep_unset_u_write(pte_t * ptep)
+{
+	*ptep &= (~(PTE_W | PTE_U));
+}
+
+static inline pte_perm_t ptep_get_perm(pte_t * ptep, pte_perm_t perm)
+{
+	return (*ptep) & perm;
+}
+
+static inline void ptep_set_perm(pte_t * ptep, pte_perm_t perm)
+{
+	if (perm & PTE_W) {
+		perm |= PTE_R;
+	}
+	*ptep |= perm;
+}
+
+static inline void ptep_copy(pte_t * to, pte_t * from)
+{
+	*to = *from;
+}
+
+static inline void ptep_unset_perm(pte_t * ptep, pte_perm_t perm)
+{
+	if (perm & PTE_R) {
+		perm |= PTE_W;
+	}
+	*ptep &= (~perm);
+}
+
+static inline int ptep_accessed(pte_t * ptep)
+{
+	return *ptep & PTE_A;
+}
+
+static inline int ptep_dirty(pte_t * ptep)
+{
+	return *ptep & PTE_D;
+}
+
+static inline void ptep_set_accessed(pte_t * ptep)
+{
+	*ptep |= PTE_A;
+}
+
+static inline void ptep_set_dirty(pte_t * ptep)
+{
+	*ptep |= PTE_D;
+}
+
+static inline void ptep_unset_accessed(pte_t * ptep)
+{
+	*ptep &= (~PTE_A);
+}
+
+static inline void ptep_unset_dirty(pte_t * ptep)
+{
+	*ptep &= (~PTE_D);
+}
+
+#endif
+
 
 #endif /* !__KERN_MM_MMU_H__ */

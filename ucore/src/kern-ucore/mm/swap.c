@@ -166,7 +166,7 @@ void swap_init(void)
 	swap_list_init(&inactive_list);
 
 	if (!
-	    (512 <= max_swap_offset
+	    (7 <= max_swap_offset
 	     && max_swap_offset < MAX_SWAP_OFFSET_LIMIT)) {
 		panic("bad max_swap_offset %08x.\n", max_swap_offset);
 	}
@@ -668,6 +668,7 @@ int kswapd_main(void *arg)
 // check_swap - check the correctness of swap & page replacement algorithm
 static void check_swap(void)
 {
+	kprintf("check_swap() begin.\n");
 	size_t nr_used_pages_store = nr_used_pages();
 	size_t slab_allocated_store = slab_allocated();
 
