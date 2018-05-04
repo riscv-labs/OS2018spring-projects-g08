@@ -130,8 +130,13 @@
 #define ELF_AT_ENTRY					9
 
 #ifdef __UCORE_64__
+#if defined(ARCH_RISCV64)
+#define elf_check_arch(x) \
+	(((x)->e_machine == EM_RISCV))
+#else
 #define elf_check_arch(x) \
     ((x)->e_machine == EM_X86_64)
+#endif
 
 /* file header */
 struct elfhdr {
@@ -267,12 +272,13 @@ struct symtab_s {
 
 #else /* __UCORE_64__ not defined */
 
-#ifndef ARCH_ARM
-#define elf_check_arch(x) \
-	(((x)->e_machine == EM_386) || ((x)->e_machine == EM_486))
-#else
+// what f**k
+#ifdef ARCH_ARM
 #define elf_check_arch(x) \
     (((x)->e_machine == EM_ARM))
+#else
+#define elf_check_arch(x) \
+	(((x)->e_machine == EM_386) || ((x)->e_machine == EM_486))
 #endif
 
 struct elfhdr {

@@ -753,8 +753,11 @@ static noinline struct module *load_module(void __user * umod,
 	}
 	unlock_mm(mm);
 
-	kprintf("load_module: hdr:%p\n", hdr);
 	// sanity check
+	// kprintf("e_type = %d, ET_REL = %d\n", hdr->e_type, ET_REL);
+	// kprintf("CHECK ARCH = %d, %d, %d\n", elf_check_arch(hdr), EM_RISCV, hdr->e_machine);
+	// kprintf("MAGIC %d\n", hdr->e_magic);
+	// kprintf("e_shentsize = %d, sechdrs size = %d\n", hdr->e_shentsize, sizeof(*sechdrs));
 	if (memcmp(&(hdr->e_magic), ELFMAG, SELFMAG) != 0
 	    || hdr->e_type != ET_REL || !elf_check_arch(hdr)
 	    || hdr->e_shentsize != sizeof(*sechdrs)) {

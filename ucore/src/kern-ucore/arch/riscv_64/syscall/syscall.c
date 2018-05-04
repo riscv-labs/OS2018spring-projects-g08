@@ -329,6 +329,23 @@ static uint64_t sys_mkfifo(uint64_t arg[])
 	return sysfile_mkfifo(name, open_flags);
 }
 
+static uint64_t sys_init_module(uint64_t arg[]){
+	void __user *umod = (void __user *)arg[0];
+	unsigned long len = (unsigned long)arg[1];
+	const char *urgs = (const char *)arg[2];
+	return do_init_module(umod, len, urgs);
+}
+
+static uint64_t sys_cleanup_module(uint64_t arg[]){
+	const char __user *name = (const char __user *)arg[0];
+	return do_cleanup_module(name);
+}
+
+static uint64_t sys_list_module(uint64_t arg[]){
+	print_modules();
+	return 0;
+}
+
 // static uint64_t sys_halt(uint64_t arg[])
 // {
 // 	do_halt();
@@ -381,7 +398,9 @@ static uint64_t(*syscalls[]) (uint64_t arg[]) = {
 	    [SYS_getdirentry] sys_getdirentry,
 	    [SYS_dup] sys_dup,[SYS_pipe] sys_pipe,
         [SYS_mkfifo] sys_mkfifo,
-        // [SYS_halt] sys_halt,
+ 	    [SYS_init_module] sys_init_module,
+	    [SYS_cleanup_module] sys_cleanup_module,
+	    [SYS_list_module] sys_list_module
     };
 
 #define NUM_SYSCALLS        ((sizeof(syscalls)) / (sizeof(syscalls[0])))
