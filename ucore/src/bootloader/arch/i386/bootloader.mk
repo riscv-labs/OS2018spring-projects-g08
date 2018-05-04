@@ -7,11 +7,9 @@ include ${T_BASE}/mk/template.mk
 all: ${T_OBJ}/bootsect
 
 ${T_OBJ}/bootsect: ${T_OBJ}/bootloader ${HT_SIGN}
-	@echo OBJCOPY $@
-	${V}${OBJCOPY} -S -O binary $< $@.original
+	${V}${TARGET_OBJCOPY} -S -O binary $< $@.original
 	@${HT_SIGN} $@.original $@
 
 ${T_OBJ}/bootloader: ${OBJFILES}
-	@echo LD $@
-	${V}${LD} -N -e start -Tarch/${ARCH}/bootloader.ld -o$@ ${OBJFILES}
+	${V}${TARGET_LD} -N -e start -Tarch/${ARCH}/bootloader.ld -o$@ ${OBJFILES}
 	${V}${STRIP} -g -R .eh_frame $@

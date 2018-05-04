@@ -35,13 +35,14 @@ ARCH ?= $(patsubst "%",%,$(UCONFIG_ARCH))
 ARCH ?= amd64
 BOARD ?= default
 CROSS_COMPILE ?= $(UCONFIG_CROSS_COMPILE)
+TARGET_CC_PREFIX ?= $(CROSS_COMPILE)
 
 CONFIG_CONFIG_IN = $(KTREE)/arch/$(ARCH)/Kconfig
 CONFIG_DEFCONFIG = $(KTREE)/arch/$(ARCH)/configs/$(BOARD)_defconfig
 
 export CONFIG_SHELL quiet Q KBUILD_VERBOSE
 export ARCH CROSS_COMPILE
-export KCONFIG_AUTOHEADER KCONFIG_AUTOCONFIG
+export KCONFIG_AUTOHEADER KCONFIG_AUTOCONFIG TARGET_CC_PREFIX
 
 
 TARGET_CC := $(CROSS_COMPILE)gcc
@@ -105,6 +106,9 @@ defconfig: $(DEFCONFIG_SCRIPT) $(CONFIG)/conf | $(CONFIG_DIR)
 	@rm -f $(KCONFIG_AUTOCONFIG) $(KCONFIG_AUTOHEADER)
 	@cp $(DEFCONFIG_SCRIPT) $(CONFIG_SCRIPT)
 	@$(CONFIG)/conf -D $(CONFIG_SCRIPT) $(CONFIG_CONFIG_IN)
+	## FIXME: temporary solution
+	@ln -sf asm-arm $(TOPDIR)/src/kern-ucore/module/include/asm
+	@ln -sf mach-goldfish/include/mach $(TOPDIR)/src/kern-ucore/module/include/mach
 
 $(CONFIG)/conf:
 	$(MAKE) CC="$(HOSTCC)" -C $(CONFIG) conf
@@ -187,6 +191,7 @@ $(CONFIG_DIR):
 #	$(Q)rm -f $(KCONFIG_AUTOCONFIG) $(KCONFIG_AUTOHEADER)
 clean:
 	@echo CLEAN ALL
+	$(Q)rm -f $(TOPDIR)/src/kern-ucore/module/include/mach $(TOPDIR)/src/kern-ucore/module/include/asm
 	$(Q)rm -f  $(CONFIG_SCRIPT).old config.cmd .tmpconfig.h
 	$(Q)rm -f $(SFSIMG_FILE)
 	$(Q)rm -rf $(OBJPATH_ROOT)
@@ -220,7 +225,7 @@ kvmamd64smp: kernel sfsimg
 
 FORCE:
 
-PHONY += FORCE
+PHONY += FORCE kmod
 
 
 qemu: sfsimg kernel

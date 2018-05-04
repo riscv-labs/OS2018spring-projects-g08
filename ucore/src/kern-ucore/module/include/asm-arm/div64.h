@@ -4,6 +4,8 @@
 #include <asm/system.h>
 #include <linux/types.h>
 
+
+#define __LINUX_ARM_ARCH__ 0 // FIXME: to suppress the unnessary error
 /*
  * The semantics of do_div() are:
  *
