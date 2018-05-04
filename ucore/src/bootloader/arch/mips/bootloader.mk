@@ -9,3 +9,4 @@ $(BOOTSECT): arch/${ARCH}/bootasm.S
 	$(OBJCOPY) -O binary  -S $(T_OBJ)/loader $@
 
 
+.PHONY: all

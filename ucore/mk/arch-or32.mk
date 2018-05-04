@@ -32,3 +32,5 @@ ${FSIMG}: ${T_OBJ}/user-sfs-timestamp
 ${RAMIMG}: ${T_OBJ}/kernel ${FSIMG} ${T_OBJ}/tools-mkram
 	@echo MAKE $@
 	${V}${T_OBJ}/tools-mkram ${T_OBJ}/kernel ${RAMIMG} -f ${FSIMG}
+
+.PHONY: all

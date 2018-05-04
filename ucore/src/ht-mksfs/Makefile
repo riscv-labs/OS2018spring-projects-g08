@@ -12,3 +12,6 @@ all: mksfs
 
 mksfs: $(OBJS)
 	$(CC) $(CFLAGS) -o $(OBJPATH_ROOT)/$@ $+
+
+
+.PHONY: all

@@ -9,3 +9,6 @@ all: ${T_OBJ}/bootloader
 ${T_OBJ}/bootloader: ${OBJFILES}
 	@echo LD $@
 	${V}${LD} -Tarch/${ARCH}/bootloader.ld -o$@ ${OBJFILES}
+
+
+.PHONY: all

@@ -20,3 +20,5 @@ ${T_OBJ}/$(BOOTLOADER_FILENAME): ${OBJFILES} $(LINK_FILE)
 	@echo LD $@
 	@echo  $(ARCH_ARM_BOARD)
 	${V}${LD} -T$(LINK_FILE) -o$@ ${OBJFILES}
+
+.PHONY: all

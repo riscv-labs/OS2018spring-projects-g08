@@ -108,3 +108,6 @@ machine:	FORCE
 
 FORCE:
 
+
+
+.PHONY: all clean

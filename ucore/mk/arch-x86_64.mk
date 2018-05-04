@@ -57,3 +57,5 @@ ${T_OBJ}/sfs.img: ${T_OBJ}/user-sfs-timestamp
 	@echo MAKE $@
 	${V}dd if=/dev/zero of=$@ bs=1M count=256
 	${V}${T_OBJ}/tools-mksfs $@ ${T_OBJ}/user-sfs
+
+.PHONY: all

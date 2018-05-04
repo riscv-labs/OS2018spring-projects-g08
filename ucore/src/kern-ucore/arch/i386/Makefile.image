@@ -35,3 +35,6 @@ FORCE:
 
 clean:
 	rm -f $(KERNEL_ELF) $(LINK_FILE)
+
+
+.PHONY: all

@@ -11,3 +11,6 @@ all: ${T_OBJ}/tools-mkram
 ${T_OBJ}/tools-mkram: ${OBJFILES}
 	@echo LD $@
 	${V}${CC} -o$@ $^
+
+
+.PHONY: all

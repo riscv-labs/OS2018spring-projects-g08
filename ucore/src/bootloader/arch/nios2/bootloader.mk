@@ -7,3 +7,5 @@ $(BOOTSECT): arch/${ARCH}/boot_loader_cfi.srec
 	${V}cp arch/${ARCH}/boot_loader_cfi.srec $(BOOTSECT)
 
 
+
+.PHONY: all

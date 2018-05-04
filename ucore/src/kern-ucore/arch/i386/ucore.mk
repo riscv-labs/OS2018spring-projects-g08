@@ -12,3 +12,6 @@ all: ${T_OBJ}/kern-bin
 ${T_OBJ}/kern-bin: ${OBJFILES}
 	@echo LD $@
 	${V}${LD} -T ${LINK_FILE} -o$@ $+
+
+
+.PHONY: all

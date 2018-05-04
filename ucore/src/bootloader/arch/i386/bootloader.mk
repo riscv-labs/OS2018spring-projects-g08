@@ -13,3 +13,4 @@ ${T_OBJ}/bootsect: ${T_OBJ}/bootloader ${HT_SIGN}
 ${T_OBJ}/bootloader: ${OBJFILES}
 	${V}${TARGET_LD} -N -e start -Tarch/${ARCH}/bootloader.ld -o$@ ${OBJFILES}
 	${V}${STRIP} -g -R .eh_frame $@
+.PHONY: all

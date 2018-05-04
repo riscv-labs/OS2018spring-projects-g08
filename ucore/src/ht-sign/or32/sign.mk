@@ -11,3 +11,6 @@ all: ${T_OBJ}/tools-sign
 ${T_OBJ}/tools-sign: ${OBJFILES}
 	@echo LD $@
 	${V}${CC} -o$@ $^
+
+
+.PHONY: all

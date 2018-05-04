@@ -43,4 +43,5 @@ ${FSIMG}: mod-user-ucore
 ${RAMIMG}: ${T_OBJ}/$(KERNEL_FILENAME)
 	@echo $@ NOT impl
 
+.PHONY: all
 

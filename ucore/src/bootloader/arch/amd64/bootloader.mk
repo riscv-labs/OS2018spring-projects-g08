@@ -15,3 +15,5 @@ ${T_OBJ}/bootloader: ${OBJFILES}
 	@echo LD $@
 	${V}${LD} -N -e start -Tarch/${ARCH}/bootloader.ld -o$@ ${OBJFILES}
 	${V}${STRIP} -g -R .eh_frame $@
+
+.PHONY: all
