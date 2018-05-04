@@ -20,6 +20,24 @@ SECTIONS
 
     .rodata : {
         *(.rodata .rodata.* .gnu.linkonce.r.*)
+        . = ALIGN(8);
+        PROVIDE(__arch_info_begin = .);
+        *(.arch.info.init)
+        PROVIDE(__arch_info_end = .);
+        . = ALIGN(8);
+        PROVIDE(__start___param = .);
+        *(__param)
+        PROVIDE(__stop___param = .);
+        . = ALIGN(8);
+        PROVIDE(__start___ksymtab = .);
+        *(__ksymtab)
+        PROVIDE(__stop___ksymtab = .);
+        . = ALIGN(8);
+        PROVIDE(__start___ksymtab_gpl = .);
+        *(__ksymtab_gpl)
+        PROVIDE(__stop___ksymtab_gpl = .);
+        . = ALIGN(8);
+        *(__ksymtab_strings)
     }
 
     /* Adjust the address for the data segment to the next page */

@@ -1,12 +1,12 @@
 #include <kio.h>
 #include <console.h>
-// #include <sync.h>
+#include <sync.h>
 #include <trap.h>
 #include <stdio.h>
-// #include <spinlock.h>
+#include <spinlock.h>
 #include <stdarg.h>
 #include <unistd.h>
-// #include <mod.h>
+#include <mod.h>
 
 /* *
  * cputch - writes a single character @c to stdout, and it will
