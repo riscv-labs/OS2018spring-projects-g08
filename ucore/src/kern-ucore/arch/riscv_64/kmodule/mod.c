@@ -59,7 +59,7 @@ int apply_relocate_add(struct secthdr *sechdrs,
 			kprintf(" R_RISCV_HI20 ");
 			tmp = (void*)val - (void*)location;
 			hi = PICK_BITS(tmp + 0x800, 12, 20);
-			lo = PICK_BITS(tmp - (hi << 12), 0, 12);
+			lo = PICK_BITS(tmp, 0, 12);
 			*location = SET_BITS(*location, 12, 20, hi);
 			*location = SET_BITS(*location, 0, 7, 0x17); // replace lui with auipc
 			break;
@@ -73,7 +73,7 @@ int apply_relocate_add(struct secthdr *sechdrs,
 			tmp = (void*)val - (void*)location;
 			kprintf("Jumping offset: %016x\n", tmp);
 			hi = PICK_BITS(tmp + 0x800, 12, 20);
-			lo = PICK_BITS(tmp - (hi << 12), 0, 12);
+			lo = PICK_BITS(tmp, 0, 12);
 			*location = SET_BITS(*location, 12, 20, hi);
 			location = (void*)location + 4;
 			*location = SET_BITS(*location, 20, 12, lo);

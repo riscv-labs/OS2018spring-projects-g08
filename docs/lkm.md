@@ -348,6 +348,19 @@
         000000000068  001f00000002 R_RISCV_64        0000000000000046 init_module + 0
         000000000070  001e00000002 R_RISCV_64        00000000000000e8 cleanup_module + 0
 
+* 目前实现的RISC-V重定位类型：
+    * `R_RISCV_64`：直接将目标位置的64位值替换为符号值+addend
+    * `R_RISCV_LO12_I`：I型指令中的立即数，取符号值+addend的低12位
+    * `R_RISCV_LO12_S`：S型指令中的立即数，取符号值+addend的低12位
+    * `R_RISCV_HI20`：`lui`中的立即数，取符号值+addend的高20位
+    * `R_RISCV_CALL`：对应一个`auipc`和一个`jalr`（通过relaxation可能优化为一条指令，由于过程过于复杂，目前实现中未考虑）
+    * `R_RISCV_RVC_JUMP`：压缩的jump指令。
+    * `R_RISCV_RVC_BRANCH`：压缩的branch指令。
+    * `R_RISCV_RELAX`：目前的实现是不管。也就是完全不考虑linker relaxation，不对代码进行压缩
+* 重定位中的坑点：
+    * 在RISC-V 64I中，`lui`和`auipc`会对得到的32位整数符号扩展得到64位整数，这个有时候是会造成麻烦的。例如在`R_RISCV_HI20`类型的重定位中，如果符号值+addend大于等于2^31，符号扩展后得到的结果就与预期不符。目前对这个问题的解决方法是在`R_RISCV_HI20`重定位中，使用`auipc`而不是`lui`指令
+    * S型、I型指令以及`jalr`指令都会对立即数进行符号扩展。因此，重定位时不能简单将需要加载的值分成高20位和低12位，在低12位最高位为1时需要将高20位加1
+
 # 其他
 
 * `printk`：实际上是内核的日志机制。消息分为8个不同的级别（例如`KERN_INFO, KERN_ALERT`等）
