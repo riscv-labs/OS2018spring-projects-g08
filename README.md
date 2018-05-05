@@ -2,6 +2,40 @@
 http://os.cs.tsinghua.edu.cn/oscourse/OS2018spring/projects/g08
 
 
+## Ucore for risc-v 64bit
+
+### Run:
+
+1. Configure:
+``
+  make menuconfig ARCH=riscv_64
+``
+or
+``
+  make ARCH=riscv_64 defconfig
+``
+
+2. Create file system
+``
+  make sfsimg
+``
+
+3. (Optional) create swap file
+If you define "Support for paging of anonymous memory(swap)" in menuconfig, then run:
+``
+  make swapimg
+``
+
+4. Create kernel
+``
+  make
+``
+
+5. Run ucore
+``
+  ./uCore_run
+``
+
 ## 学习笔记
 
  * LKM: https://github.com/riscv-labs/OS2018spring-projects-g08/blob/master/docs/lkm.md
