@@ -913,6 +913,8 @@ static noinline struct module *load_module(void __user * umod,
 				 sizeof(*mod->syms), &mod->num_syms); // TODO: are these for exported symbols only?????
 	mod->crcs = section_addr(hdr, sechdrs, secstrings, "__kcrctab");
 
+	assert(mod->init == NULL);
+
 	// relocations
 	for (i = 1; i < hdr->e_shnum; i++) {
 		const char *strtab = (char *)sechdrs[strindex].sh_addr;
