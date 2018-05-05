@@ -50,7 +50,8 @@
 #define KERNTOP             (KERNBASE + KMEMSIZE)
 
 #define DISK_FS_VBASE       KERNTOP
-
+#define DISK_FS_SIZE        0x20000000
+#define DISK_SWAP_VBASE     DISK_FS_VBASE + DISK_FS_SIZE
 /* *
  * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains
  * a pointer to the page directory itself, thereby turning the PD into a page

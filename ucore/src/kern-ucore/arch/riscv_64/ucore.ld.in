@@ -38,6 +38,11 @@ SECTIONS
         *(.initrd)
         . = ALIGN(4096); 
         PROVIDE(initrd_end = .);
+        . = ALIGN(4096);
+        PROVIDE(swaprd_begin = .);
+        *(.swaprd)
+        . = ALIGN(4096); 
+        PROVIDE(swaprd_end = .);
     }
 
     .sdata : {

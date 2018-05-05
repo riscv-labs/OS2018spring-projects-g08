@@ -21,6 +21,16 @@ bool check_initrd() {
     return 1;
 }
 
+bool check_swaprd() {
+    if (swaprd_begin == swaprd_end) {
+        kprintf("Warning: No Swaprd!\n");
+        return 0;
+    }
+    kprintf("Swaprd: 0x%08x - 0x%08x, size: 0x%08x\n", swaprd_begin,
+            swaprd_end - 1, swaprd_end - swaprd_begin);
+    return 1;
+}
+
 static int ramdisk_read(struct ide_device *dev, size_t secno, void *dst,
                         size_t nsecs) {
     nsecs = MIN(nsecs, dev->size - secno);
@@ -37,28 +47,39 @@ static int ramdisk_write(struct ide_device *dev, size_t secno, const void *src,
     return 0;
 }
 
-void ramdisk_init(struct ide_device *dev) {
+void ramdisk_init(int devno, struct ide_device *dev) {
     memset(dev, 0, sizeof(struct ide_device));
     assert(INITRD_SIZE() % SECTSIZE == 0);
-    kprintf("INITRD_SIZE():%x\n", INITRD_SIZE());
-    // char *_initrd_begin;
-    // char *_initrd_end;
-    // if (devno == SWAP_DEV_NO) {
-    //     _initrd_begin = _binary_swap_img_start;
-    //     _initrd_end = _binary_swap_img_end;
-    // } else if (devno == DISK0_DEV_NO) {
-    //     _initrd_begin = _binary_sfs_img_start;
-    //     _initrd_end = _binary_sfs_img_end;
-    // } else {
-    //     panic("Device Not Found");
-    // }
-    if (CHECK_INITRD_EXIST()) {
-		dev->valid = 1;
-		dev->sets = ~0;
-        dev->size = (unsigned int)INITRD_SIZE() / SECTSIZE;
-        dev->iobase = (void *) DISK_FS_VBASE;
-        strcpy(dev->model, "KERN_INITRD");
-        dev->read_secs = ramdisk_read;
-        dev->write_secs = ramdisk_write;
-	}
+    kprintf("INITRD_SIZE():0x%x\n", INITRD_SIZE());
+#ifdef UCONFIG_SWAP    
+    assert(SWAPRD_SIZE() % SECTSIZE == 0);
+    kprintf("SWAPRD_SIZE():0x%x\n", SWAPRD_SIZE());
+#endif
+
+    if (devno == SWAP_DEV_NO) {
+    #ifndef UCONFIG_SWAP
+        panic("Swap is not config!\n");
+    #endif
+        if (CHECK_SWAPRD_EXIST()) {
+            dev->valid = 1;
+            dev->sets = ~0;
+            dev->size = (unsigned int)SWAPRD_SIZE() / SECTSIZE;
+            dev->iobase = (void *) DISK_SWAP_VBASE;
+            strcpy(dev->model, "KERN_INITRD");
+            dev->read_secs = ramdisk_read;
+            dev->write_secs = ramdisk_write;
+	    }
+    } else if (devno == DISK0_DEV_NO) {
+        if (CHECK_INITRD_EXIST()) {
+            dev->valid = 1;
+            dev->sets = ~0;
+            dev->size = (unsigned int)INITRD_SIZE() / SECTSIZE;
+            dev->iobase = (void *) DISK_FS_VBASE;
+            strcpy(dev->model, "KERN_INITRD");
+            dev->read_secs = ramdisk_read;
+            dev->write_secs = ramdisk_write;
+        }
+    } else {
+        panic("Device Not Found");
+    }
 }

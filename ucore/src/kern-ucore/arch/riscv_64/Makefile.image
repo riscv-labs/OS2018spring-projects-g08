@@ -19,14 +19,27 @@ RAMDISK_FILE := $(OBJPATH_ROOT)/$(shell echo sfs.img)
 endif
 RAMDISK_OBJ := $(RAMDISK_FILE).o
 
+ifdef UCONFIG_SWAP
+SWAPIMG		:= ${T_OBJ}/swap.img
+export SWAP_FILE ?= $(SWAPIMG)
+__CMD := case swap.img in /*) echo 1;; esac
+ifeq ($(shell $(__CMD)), 1)
+SWAPFS_FILE := $(shell echo swap.img)
+else
+SWAPFS_FILE := $(OBJPATH_ROOT)/$(shell echo swap.img)
+endif
+
+SWAP_OBJ := $(SWAPFS_FILE).o
+endif
+
 
 $(KERNEL_IMG): $(KERNEL_ELF)
 	@echo Making $@
 	cd $(TOPDIR)/../riscv-pk && rm -rf build && mkdir build && cd build && ../configure --prefix=$(RISCV) --host=riscv64-unknown-elf --with-payload=$(KERNEL_ELF) --disable-fp-emulation --enable-logo && make && cp bbl $(KERNEL_IMG)
 
-$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) 
+$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(SWAP_OBJ)
 	@echo Linking uCore
-	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) -o $@
+	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(SWAP_OBJ) -o $@
 
 $(LINK_FILE): $(LINK_FILE_IN) $(KCONFIG_AUTOCONFIG)
 	@echo "creating linker script"
@@ -39,6 +52,16 @@ $(RAMDISK_OBJ): $(RAMDISK_FILE)
 	@sed "s#DATA_FILE#$(RAMDISK_FILE)#" < $(KTREE)/arch/$(ARCH)/tools/initrd.S.in > $(INITRD_PIGGY_S)
 	$(Q)$(TARGET_CC) -c $(INITRD_PIGGY_S) -o $@
 	$(Q)rm -f $(INITRD_PIGGY_S)
+
+ifdef UCONFIG_SWAP
+SWAPRD_PIGGY_S:=$(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools/swaprd.S
+$(SWAP_OBJ): $(SWAPFS_FILE)
+	@echo "Linking Swaprd into kernel, using $(SWAPFS_FILE)"
+	@mkdir -p $(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools
+	@sed "s#SWAP_FILE#$(SWAPFS_FILE)#" < $(KTREE)/arch/$(ARCH)/tools/swaprd.S.in > $(SWAPRD_PIGGY_S)
+	$(Q)$(TARGET_CC) -c $(SWAPRD_PIGGY_S) -o $@
+	$(Q)rm -f $(SWAPRD_PIGGY_S)
+endif
 
 .PHONY: all clean FORCE
 all: $(KERNEL_IMG)
