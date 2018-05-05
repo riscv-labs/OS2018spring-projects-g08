@@ -105,7 +105,8 @@ void load_pgdir(struct proc_struct *proc)
  */
 void map_pgdir(pgd_t * pgdir)
 {
-    ptep_map(&(pgdir[PDX0(VPT)]), PADDR(pgdir));
+    // ptep_map(&(pgdir[PDX0(VPT)]), PADDR(pgdir));
+    ptep_map(&(pgdir[PGX(VPT)]), PADDR(pgdir));
 	//ptep_set_present(&(pgdir[PGX(VPT)]));
 }
 
@@ -276,7 +277,8 @@ void pmm_init(void) {
 
     // recursively insert boot_pgdir in itself
     // to form a virtual page table at virtual address VPT
-    boot_pgdir[PDX0(VPT)] = pte_create(PPN(boot_cr3), PAGE_TABLE_DIR);
+
+    boot_pgdir[PGX(VPT)] = pte_create(PPN(boot_cr3), PAGE_TABLE_DIR);
 
     // map all physical memory to linear memory with base linear addr KERNBASE
     // linear_addr KERNBASE~KERNBASE+KMEMSIZE = phy_addr 0~KMEMSIZE
@@ -392,7 +394,7 @@ void check_boot_pgdir(void) {
         assert(PTE_ADDR(*ptep) == i);
     }
 
-    assert(PDE_ADDR(boot_pgdir[PDX0(VPT)]) == PADDR(boot_pgdir));
+    assert(PDE_ADDR(boot_pgdir[PGX(VPT)]) == PADDR(boot_pgdir));
 
     assert(boot_pgdir[0] == 0);
 

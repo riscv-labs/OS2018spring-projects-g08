@@ -1032,12 +1032,6 @@ static int load_icode(int fd, int argc, char **kargv, int envc, char **kenvp)
 		goto bad_cleanup_mmap;
 	}
 
-#ifdef RISCV_64
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-2*PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-3*PGSIZE , PTE_USER) != NULL);
-    assert(pgdir_alloc_page(mm->pgdir, USTACKTOP-4*PGSIZE , PTE_USER) != NULL);
-#endif
 
 	if (is_dynamic) {
 		elf->e_entry += bias;
@@ -1916,7 +1910,7 @@ int do_shmem(uintptr_t * addr_store, size_t len, uint32_t mmap_flags)
 	if (mmap_flags & MMAP_STACK)
 		vm_flags |= VM_STACK;
 
-#ifdef RISCV_64
+#ifdef ARCH_RISCV64
 	if (mmap_flags & MMAP_WRITE)
 		vm_flags |= VM_WRITE | VM_READ;
 #endif
