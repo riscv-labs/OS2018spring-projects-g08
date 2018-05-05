@@ -8,8 +8,8 @@
 #define CHAR_BIT        8
 
 /* Represents true-or-false values */
-#ifdef RISCV_64
-typedef int64_t bool;
+#ifdef ARCH_RISCV64
+typedef long long bool;
 #else
 typedef int bool;
 #endif

@@ -16,8 +16,7 @@
 
 static const char *g_envp[] = { "PATH=/bin", NULL };
 
-// static char *shcwd = NULL;
-static char shcwd[BUFSIZE];
+static char *shcwd = NULL;
 
 int gettoken(char **p1, char **p2)
 {
@@ -228,7 +227,7 @@ int main(int argc, char **argv)
 		usage();
 		return -1;
 	}
-	// shcwd = shmem_malloc(BUFSIZE);
+	shcwd = shmem_malloc(BUFSIZE);
 	assert(shcwd != NULL);
 
 	char *buffer;
