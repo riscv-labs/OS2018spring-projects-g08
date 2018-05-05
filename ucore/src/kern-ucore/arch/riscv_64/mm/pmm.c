@@ -172,8 +172,7 @@ static void page_init(void) {
     va_pa_offset = KERNBASE - (uint64_t)kern_entry;
 
     uint64_t mem_begin = (uint64_t)kern_entry;
-    //uint64_t mem_end = (8 << 20) + DRAM_BASE; // 8MB memory on qemu
-    uint64_t mem_end = (128 << 20) + DRAM_BASE;
+    uint64_t mem_end = (128 << 20) + DRAM_BASE; // 128MB memory on qemu
     uint64_t mem_size = mem_end - mem_begin;
 
     kprintf("physical memory map:\n");
@@ -257,7 +256,7 @@ void pmm_init(void) {
     // Then pmm can alloc/free the physical memory.
     // Now the first_fit/best_fit/worst_fit/buddy_system pmm are available.
     init_pmm_manager();
-
+    
     // detect physical memory space, reserve already used memory,
     // then use pmm->init_memmap to create free page list
     page_init();
@@ -292,7 +291,14 @@ void pmm_init(void) {
 				 (uintptr_t) PADDR(initrd_begin), PTE_W | PTE_R);
 		kprintf("mapping initrd to 0x%08x\n", DISK_FS_VBASE);
 	}
-
+#ifdef UCONFIG_SWAP
+    if (CHECK_SWAPRD_EXIST()) {
+		boot_map_segment(boot_pgdir, DISK_SWAP_VBASE,
+				 ROUNDUP(swaprd_end - swaprd_begin, PGSIZE),
+				 (uintptr_t) PADDR(swaprd_begin), PTE_W | PTE_R);
+		kprintf("mapping swaprd to 0x%08x\n", DISK_SWAP_VBASE);
+	}
+#endif
     // temporary map:
     // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M =
     // phy_addr 0~4M

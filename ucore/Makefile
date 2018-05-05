@@ -168,7 +168,6 @@ endif
 	-cp -r $(TOPDIR)/src/user-ucore/_initial/* $(TMPSFS)
 	@rm -f $@
 	@dd if=/dev/zero of=$@ bs=1M count=$(UCONFIG_SFS_IMAGE_SIZE) >/dev/null 2>&1
-	#@dd if=/dev/zero of=$@ bs=1kB count=640
 	@$(TOOLS_MKSFS) $@ $(TMPSFS)
 	@rm -rf $(TMPSFS)
 
@@ -180,7 +179,7 @@ swapimg: $(SWAPFS_FILE)
 
 $(SWAPFS_FILE): | $(OBJPATH_ROOT)
 	@echo Making $@
-	$(Q)dd if=/dev/zero of=$@ bs=1M count=128 >/dev/null 2>&1
+	$(Q)dd if=/dev/zero of=$@ bs=1M count=16 >/dev/null 2>&1
 endif
 
 $(OBJPATH_ROOT):
@@ -227,15 +226,6 @@ kvmamd64smp: kernel sfsimg
 FORCE:
 
 PHONY += FORCE kmod
-
-
-qemu: sfsimg kernel
-	$(Q)qemu-system-riscv64  -machine virt -kernel obj/kernel.img -nographic
-
-spike: kernel
-	$(Q)qemu-system-riscv64 obj/kernel.img
-
-PHONY += qemu spike
 
 .PHONY: $(PHONY)
 

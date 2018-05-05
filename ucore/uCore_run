@@ -140,23 +140,8 @@ case $UCONFIG_ARCH in
         if [ $? -eq 0 ]; then
             QEMU=qemu-system-riscv64
         fi
-        EXTRA_OPT="-serial file:$BUILD_DIR/serial.log$TEST_POSTFIX"
-        if [[ $TEST_MODE = y ]]; then
-            EXTRA_OPT+=" -S -display none -gdb tcp::$GDB_PORT "
-        else
-            if [[ $COMMAND_LINE_MODE = y ]]; then
-                echo -e "\033[0;36;1mNote: Qemu is running under no graphic mode. Press 'Ctrl-a x' to exit\033[0m"
-                EXTRA_OPT="-nographic"
-            else
-                EXTRA_OPT+=" -monitor stdio -serial file:$BUILD_DIR/serial.log$TEST_POSTFIX"
-            fi
-            if [[ $DEBUG_MODE = y ]]; then
-                EXTRA_OPT+=" -s -S"
-            fi
-        fi
-        exec $QEMU -d in_asm \
-            -hda $BUILD_DIR/kernel.img$TEST_POSTFIX \
-            -drive file=$BUILD_DIR/sfs.img$TEST_POSTFIX,media=disk,cache=writeback\
-            $EXTRA_OPT
+        exec $QEMU -machine virt \
+            -kernel $BUILD_DIR/kernel.img \
+            -nographic
         ;;
 esac
