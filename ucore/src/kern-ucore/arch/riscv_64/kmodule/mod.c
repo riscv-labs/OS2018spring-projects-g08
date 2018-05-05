@@ -22,7 +22,7 @@ int apply_relocate_add(struct secthdr *sechdrs,
 	struct reloc_a_s *rel = (void *)sechdrs[relsec].sh_addr;
 	struct symtab_s *sym;
 	uint64_t *location;
-	uint64_t o_val;
+	uint64_t o_val, hi, lo;
 
 	kprintf("Applying relocate section %u to %u\n", relsec,
 			sechdrs[relsec].sh_info);
@@ -48,16 +48,20 @@ int apply_relocate_add(struct secthdr *sechdrs,
 			break;
 		case R_RISCV_LO12_I:
 			kprintf(" R_RISCV_LO12_I ");
-			*location = SET_BITS(*location, 20, 12, PICK_BITS(val, 0, 12));
+			*location = SET_BITS(*location, 20, 12, PICK_BITS(lo, 0, 12));
 			break;
 		case R_RISCV_LO12_S:
 			kprintf(" R_RISCV_LO12_S ");
-			*location = SET_BITS(*location, 7, 5, PICK_BITS(val, 0, 5));
-			*location = SET_BITS(*location, 25, 7, PICK_BITS(val, 5, 7));
+			*location = SET_BITS(*location, 7, 5, PICK_BITS(lo, 0, 5));
+			*location = SET_BITS(*location, 25, 7, PICK_BITS(lo, 5, 7));
 			break;
 		case R_RISCV_HI20:
 			kprintf(" R_RISCV_HI20 ");
-			*location = SET_BITS(*location, 12, 20, PICK_BITS(val, 12, 20));
+			tmp = (void*)val - (void*)location;
+			hi = PICK_BITS(tmp + 0x800, 12, 20);
+			lo = PICK_BITS(tmp - (hi << 12), 0, 12);
+			*location = SET_BITS(*location, 12, 20, hi);
+			*location = SET_BITS(*location, 0, 7, 0x17); // replace lui with auipc
 			break;
 		case R_RISCV_RELAX:
 			kprintf(" R_RISCV_RELAX ");
@@ -65,11 +69,14 @@ int apply_relocate_add(struct secthdr *sechdrs,
 			break;
 		case R_RISCV_CALL:
 			kprintf(" R_RISCV_CALL ");
-			tmp = (void*)val - (void*)location - 4;
+
+			tmp = (void*)val - (void*)location;
 			kprintf("Jumping offset: %016x\n", tmp);
-			*location = SET_BITS(*location, 12, 20, PICK_BITS(tmp, 12, 20));
+			hi = PICK_BITS(tmp + 0x800, 12, 20);
+			lo = PICK_BITS(tmp - (hi << 12), 0, 12);
+			*location = SET_BITS(*location, 12, 20, hi);
 			location = (void*)location + 4;
-			*location = SET_BITS(*location, 20, 12, PICK_BITS(tmp, 0, 12));
+			*location = SET_BITS(*location, 20, 12, lo);
 			break;
 		case R_RISCV_RVC_JUMP:
 			kprintf(" R_RISCV_RVC_JUMP ");

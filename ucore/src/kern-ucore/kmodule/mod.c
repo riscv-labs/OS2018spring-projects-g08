@@ -691,6 +691,7 @@ static int simplify_symbols(struct secthdr *sechdrs,
 					   strtab + sym[i].st_name, mod);
 			/* Ok if resolved.  */
 			if (ksym) {
+				kprintf("Symbol found %016lx\n", ksym->value);
 				sym[i].st_value = ksym->value;
 				break;
 			}
@@ -942,6 +943,8 @@ static noinline struct module *load_module(void __user * umod,
 			goto cleanup;
 	}
 
+	kprintf("INIT : %016lx, EXIT : %016lx\n", mod->init, mod->exit);
+
 	err = verify_export_symbols(mod);
 	if (err < 0)
 		goto cleanup;
@@ -987,6 +990,9 @@ int do_init_module(void __user * umod, unsigned long len,
 	struct module *mod;
 	int ret = 0;
 
+	kprintf("kprintf %016lx\n", kprintf);
+	kprintf("vkprintf %016lx\n", vkprintf);
+
 	// TODO: non-preemptive kernel does not need to lock module mutex
 
 	mod = load_module(umod, len, uargs);
@@ -1025,6 +1031,7 @@ int do_init_module(void __user * umod, unsigned long len,
 	mod->init_text_size = 0;
 	// TODO: unlock
 
+
 	return 0;
 }
 
@@ -1032,7 +1039,7 @@ int do_cleanup_module(const char __user * name_user)
 {
 	struct module *mod;
 	char name[MODULE_NAME_LEN];
-	int ret, forced = 0;
+	int ret = 0, forced = 0;
 
 	struct mm_struct *mm = current->mm;
 	lock_mm(mm);

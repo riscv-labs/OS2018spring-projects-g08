@@ -41,6 +41,7 @@ static int test_driver_register(struct test_device_driver *test_driver)
 
 static int hello_init(void)
 {
+	// return 0;
 	int ret = -1;
 	kprintf(KERN_ALERT "Hello, world\n");
 	ret = test_bus_init();
@@ -58,6 +59,7 @@ static int hello_init(void)
 
 static void hello_exit(void)
 {
+	// return 0;
 	kprintf(KERN_ALERT "Goodbye, world\n");
 }
 
