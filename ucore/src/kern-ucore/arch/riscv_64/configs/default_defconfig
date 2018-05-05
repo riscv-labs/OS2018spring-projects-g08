@@ -1,9 +1,10 @@
 #
 # Toolchain setup
 #
-CROSS_COMPILE="riscv64-unknown-elf"
+CROSS_COMPILE="riscv64-unknown-elf-"
 ADDITIONAL_CFLAGS=""
 ADDITIONAL_LDFLAGS=""
+export LKM_FLAGS="-DARCH64"
 
 #
 # Memory Management

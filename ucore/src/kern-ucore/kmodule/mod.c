@@ -705,11 +705,14 @@ static int simplify_symbols(struct secthdr *sechdrs,
 			// shifting offset
 			// (relative addressing)
 			// (add the address of the corresponding section)
+
 			if (sym[i].st_shndx == pcpuindex)
 				secbase = (unsigned long)mod->percpu;
 			else
 				secbase = sechdrs[sym[i].st_shndx].sh_addr;
 			sym[i].st_value += secbase;
+			kprintf("simplify_symbols: Shifted symbol: %s, %08x\n",
+				strtab + sym[i].st_name, sym[i].st_value);
 			break;
 		}
 	}

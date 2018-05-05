@@ -107,6 +107,7 @@ defconfig: $(DEFCONFIG_SCRIPT) $(CONFIG)/conf | $(CONFIG_DIR)
 	@cp $(DEFCONFIG_SCRIPT) $(CONFIG_SCRIPT)
 	@$(CONFIG)/conf -D $(CONFIG_SCRIPT) $(CONFIG_CONFIG_IN)
 	## FIXME: temporary solution
+	@rm -f $(TOPDIR)/src/kern-ucore/module/include/asm $(TOPDIR)/src/kern-ucore/module/include/mach
 	@ln -sf asm-arm $(TOPDIR)/src/kern-ucore/module/include/asm
 	@ln -sf mach-goldfish/include/mach $(TOPDIR)/src/kern-ucore/module/include/mach
 
