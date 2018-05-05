@@ -107,7 +107,6 @@ static inline void print_pgfault(struct trapframe *tf) {
 
 static int pgfault_handler(struct trapframe *tf) {
     extern struct mm_struct *check_mm_struct;
-    print_pgfault(tf);
     struct mm_struct *mm;
     if (check_mm_struct != NULL) {
         assert(current == idleproc);
@@ -121,28 +120,6 @@ static int pgfault_handler(struct trapframe *tf) {
         }
         mm = current->mm;
     }
-    // uint64_t cause;
-    // uintptr_t addr = ROUNDDOWN(tf->badvaddr, PGSIZE);    
-    // pte_t* ptep = get_pte(mm->pgdir, addr, 0);
-    // if (tf->cause == CAUSE_STORE_PAGE_FAULT) {
-    //     if (ptep == NULL || ptep_present(ptep)) {
-    //         if (ptep == NULL) {
-    //             kprintf("pte is null\n");
-    //         }
-    //         cause = 3;
-    //     }
-    //     else {
-    //         cause = 2;
-    //     }
-    // }
-    // else {
-    //     if (ptep == NULL || ptep_present(ptep)) {
-    //         cause = 1;
-    //     }
-    //     else {
-    //         cause = 0;
-    //     }
-    // }
     return do_pgfault(mm, 3, tf->badvaddr);
 }
 
@@ -256,9 +233,8 @@ void exception_handler(struct trapframe *tf) {
             panic("Instruction page fault\n");
             break;
         case CAUSE_LOAD_PAGE_FAULT:
-            kprintf("Load page fault\n");
+            // kprintf("Load page fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
-                print_trapframe(tf);
                 if (current == NULL) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
@@ -273,9 +249,8 @@ void exception_handler(struct trapframe *tf) {
             }
             break;
         case CAUSE_STORE_PAGE_FAULT:
-            kprintf("Store/AMO page fault\n");
+            // kprintf("Store/AMO page fault\n");
             if ((ret = pgfault_handler(tf)) != 0) {
-                print_trapframe(tf);
                 if (current == NULL) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {

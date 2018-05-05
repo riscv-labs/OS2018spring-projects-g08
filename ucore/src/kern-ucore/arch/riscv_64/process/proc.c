@@ -124,9 +124,6 @@ init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 	tf->gpr.sp = stacktop;
 	tf->epc = elf->e_entry;
 	tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);
-	kprintf("=============================\n");
-	kprintf("stacktop:%x\n", stacktop);
-	kprintf("=============================\n");
 	return 0;
 }
 
