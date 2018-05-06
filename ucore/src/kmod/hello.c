@@ -27,8 +27,8 @@ struct bus_type test_bus_type = {
 static int __init test_bus_init()
 {
 	kprintf(KERN_ALERT "bus register");
-	return 0;
 	// return bus_register(&test_bus_type);
+	return 0;
 }
 
 static int test_driver_register(struct test_device_driver *test_driver)
@@ -39,7 +39,7 @@ static int test_driver_register(struct test_device_driver *test_driver)
 	// return driver_register(&test_driver->driver);
 }
 
-static int hello_init(void)
+static int __init  hello_init(void)
 {
 	// return 0;
 	int ret = -1;
@@ -57,7 +57,7 @@ static int hello_init(void)
 	return 0;
 }
 
-static void hello_exit(void)
+static void  hello_exit(void)
 {
 	// return 0;
 	kprintf(KERN_ALERT "Goodbye, world\n");

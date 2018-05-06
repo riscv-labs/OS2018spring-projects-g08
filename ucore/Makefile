@@ -159,7 +159,7 @@ $(SFSIMG_FILE): $(TOOLS_MKSFS) userlib userapp FORCE kmod | $(OBJPATH_ROOT)
 	@rm -rf $(TMPSFS)
 	@mkdir -p $(TMPSFS)
 	@mkdir -p $(TMPSFS)/lib/modules
-	@cp -r $(TOPDIR)/src/kmod/hello.ko $(TMPSFS)/lib/modules/
+	@cp -r $(TOPDIR)/src/kmod/*.ko $(TMPSFS)/lib/modules/
 	@cp -r $(OBJPATH_ROOT)/user-ucore/bin $(TMPSFS)
 ifneq ($(UCORE_TEST),)
 	@cp -r $(OBJPATH_ROOT)/user-ucore/testbin $(TMPSFS)

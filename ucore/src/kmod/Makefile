@@ -7,10 +7,13 @@ LKM_FLAGS ?=
 include ${T_BASE}/mk/compk.mk
 include ${T_BASE}/mk/template.mk
 
-hello.ko: hello.c hello.mod.c
-	$(CC) -c -D__KERNEL__ -DMODULE $(LKM_FLAGS) $(KERNEL_INC) hello.c
-	$(CC) -c -D__KERNEL__ -DMODULE $(LKM_FLAGS) $(KERNEL_INC) hello.mod.c
-	$(LD) -r -o $@ hello.o hello.mod.o
+LKMS := $(patsubst %.mod.c,%.ko,$(wildcard *.mod.c))
 
-all: hello.ko
+$(LKMS): %.ko: %.mod.c %.c
+	$(CC) -c -D__KERNEL__ -DMODULE $(LKM_FLAGS) $(KERNEL_INC) $*.c
+	$(CC) -c -D__KERNEL__ -DMODULE $(LKM_FLAGS) $(KERNEL_INC) $*.mod.c
+	$(LD) -r -o $@ $*.o $*.mod.o
 
+
+
+all: $(LKMS)

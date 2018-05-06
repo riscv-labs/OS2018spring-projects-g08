@@ -72,7 +72,7 @@ static const struct kernel_symbol *resolve_symbol(struct secthdr *sechdrs,
 	const unsigned long *crc;
 	sym = find_symbol(name, &owner, &crc, 1);
 	if (sym) {
-		kprintf("\tresolve_symbol: symbol %s found\n", name);
+		kprintf("\tresolve_symbol: symbol %s found %016lx, %016lx\n", name, sym->value, owner);
 		if (!check_version(sechdrs, versindex, name, mod, crc) ||
 		    !use_module(mod, owner))
 			sym = NULL;
@@ -482,7 +482,7 @@ int use_module(struct module *a, struct module *b)
 
 	// TODO: interrupt or time out
 
-	use = kmalloc(sizeof(*use));
+	use = kmalloc(sizeof(struct module_use));
 	if (!use) {
 		kprintf("%s: out of memory loading.\n", a->name);
 		// TODO: module put
@@ -490,6 +490,7 @@ int use_module(struct module *a, struct module *b)
 	}
 
 	use->module_which_uses = a;
+	list_init(&use->list);
 	list_add(&use->list, &b->modules_which_use_me);
 	return 1;
 }
@@ -690,6 +691,7 @@ static int simplify_symbols(struct secthdr *sechdrs,
 			    resolve_symbol(sechdrs, versindex,
 					   strtab + sym[i].st_name, mod);
 			/* Ok if resolved.  */
+			kprintf("----- %016lx\n", ksym);
 			if (ksym) {
 				kprintf("Symbol found %016lx\n", ksym->value);
 				sym[i].st_value = ksym->value;
