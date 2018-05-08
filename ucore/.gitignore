@@ -19,6 +19,8 @@ package/config/mconf
 # userspace binaries & initial directory
 src/user-ucore/bin
 src/user-ucore/_initial
+src/kern-ucore/module/include/asm
+src/kern-ucore/module/include/mach
 
 # generated manuals
 *.man
