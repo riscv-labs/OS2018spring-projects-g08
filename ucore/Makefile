@@ -171,6 +171,33 @@ endif
 	@$(TOOLS_MKSFS) $@ $(TMPSFS)
 	@rm -rf $(TMPSFS)
 
+## image
+SFSIMG2_LINK := $(OBJPATH_ROOT)/sfs_cp.img
+SFSIMG2_FILE := $(OBJPATH_ROOT)/sfs_cp-orig.img
+TMPSFS2 := $(OBJPATH_ROOT)/.tmpsfs
+sfsimg2: $(SFSIMG2_LINK)
+
+## ??? why creating a symlink?
+$(SFSIMG2_LINK): $(SFSIMG2_FILE)
+	@ln -sf sfs_cp-orig.img $@
+
+$(SFSIMG2_FILE): $(TOOLS_MKSFS) userlib userapp FORCE kmod | $(OBJPATH_ROOT)
+	@echo Making $@
+	@rm -rf $(TMPSFS2)
+	@mkdir -p $(TMPSFS2)
+	@mkdir -p $(TMPSFS2)/lib/modules
+	@cp -r $(TOPDIR)/src/kmod/*.ko $(TMPSFS2)/lib/modules/
+	@cp -r $(OBJPATH_ROOT)/user-ucore/bin $(TMPSFS2)
+ifneq ($(UCORE_TEST),)
+	@cp -r $(OBJPATH_ROOT)/user-ucore/testbin $(TMPSFS2)
+endif
+	@$(Q)$(MAKE) -f $(TOPDIR)/src/user-ucore/Makefile -C $(TOPDIR)/src/user-ucore initial_dir
+	-cp -r $(TOPDIR)/src/user-ucore/_initial/* $(TMPSFS2)
+	@rm -f $@
+	@dd if=/dev/zero of=$@ bs=1M count=$(UCONFIG_SFS_IMAGE_SIZE) >/dev/null 2>&1
+	@$(TOOLS_MKSFS) $@ $(TMPSFS2)
+	@rm -rf $(TMPSFS2)
+
 endif
 
 ifdef UCONFIG_SWAP

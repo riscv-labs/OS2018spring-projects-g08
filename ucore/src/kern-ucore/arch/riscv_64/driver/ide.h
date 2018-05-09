@@ -3,7 +3,7 @@
 
 #include <types.h>
 
-#define MAX_IDE 4
+#define MAX_IDE 5
 #define MAX_NSECS 128
 #define MAX_DISK_NSECS 0x10000000U
 #define VALID_IDE(ideno) \
