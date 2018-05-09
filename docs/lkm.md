@@ -361,6 +361,45 @@
     * 在RISC-V 64I中，`lui`和`auipc`会对得到的32位整数符号扩展得到64位整数，这个有时候是会造成麻烦的。例如在`R_RISCV_HI20`类型的重定位中，如果符号值+addend大于等于2^31，符号扩展后得到的结果就与预期不符。目前对这个问题的解决方法是在`R_RISCV_HI20`重定位中，使用`auipc`而不是`lui`指令
     * S型、I型指令以及`jalr`指令都会对立即数进行符号扩展。因此，重定位时不能简单将需要加载的值分成高20位和低12位，在低12位最高位为1时需要将高20位加1
 
+# Linux的LKM
+
+* 在SMP下，每个module有一个`percpu` section（`.data..percpu`），存放了per cpu数据。在`init_module`中内核会为每个CPU分配单独的空间放置该section的数据（`percpu` section会被分配空间，但是比较特殊，因此在Linux实现中是和其他section分开处理的）
+
+    	/* We will do a special allocation for per-cpu sections later. */
+	    info->sechdrs[info->index.pcpu].sh_flags &= ~(unsigned long)SHF_ALLOC; 
+
+    内核的per cpu数据的起始地址和结束地址分别为`__per_cpu_start`及`__per_cpu_end`
+
+        #define PERCPU_INPUT(cacheline)						\
+        VMLINUX_SYMBOL(__per_cpu_start) = .;				\
+        *(.data..percpu..first)						\
+        . = ALIGN(PAGE_SIZE);						\
+        *(.data..percpu..page_aligned)					\
+        . = ALIGN(cacheline);						\
+        *(.data..percpu..read_mostly)					\
+        . = ALIGN(cacheline);						\
+        *(.data..percpu)						\
+        *(.data..percpu..shared_aligned)				\
+        PERCPU_DECRYPTED_SECTION					\
+        VMLINUX_SYMBOL(__per_cpu_end) = .;
+
+    上面按照`cacheline`对齐似乎是为了避免并发访问per cpu时竞争cache的问题。
+
+    per cpu数据的访问应当在禁用抢占的情况下进行。
+
+
+* 每个module有个exception table（内核本身也有一个），用于存放fault时的跳转地址
+
+    	. = ALIGN(4);
+            __ex_table : AT(ADDR(__ex_table) - LOAD_OFFSET) {
+                __start___ex_table = .;
+                #ifdef CONFIG_MMU
+                        *(__ex_table)
+                #endif
+                __stop___ex_table = .;
+            }
+
+
 # 其他
 
 * `printk`：实际上是内核的日志机制。消息分为8个不同的级别（例如`KERN_INFO, KERN_ALERT`等）

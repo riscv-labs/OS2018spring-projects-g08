@@ -17,11 +17,17 @@
 #include <mp.h>
 //#include <mod.h>
 
-int kern_init(void) __attribute__((noreturn));
+int kern_init(uintptr_t hartid, uintptr_t good) __attribute__((noreturn));
 void grade_backtrace(void);
 static void lab1_switch_test(void);
 
-int kern_init(void) {
+int kern_init(uintptr_t hartid, uintptr_t good) {
+    if(hartid != 0){
+        // do nothing
+        asm("wfi;");
+    }
+    kprintf("HARTID: %d\n", hartid);
+
     extern char edata[], end[];
     memset(edata, 0, end - edata);
 
