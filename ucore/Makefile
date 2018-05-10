@@ -138,11 +138,17 @@ userapp: $(OBJPATH_ROOT) $(KCONFIG_AUTOCONFIG)
 
 ## TOOLS 
 
+TOOLS_MKSFATFS_DIR := $(TOPDIR)/src/ht-mksfatfs
+TOOLS_MKSFATFS := $(OBJPATH_ROOT)/mksfatfs
+$(TOOLS_MKSFATFS): | $(OBJPATH_ROOT)
+	$(Q)$(MAKE) CC=$(HOSTCC) -f $(TOOLS_MKSFATFS_DIR)/Makefile -C $(TOOLS_MKSFATFS_DIR) all
+
 ifdef UCONFIG_HAVE_SFS
 TOOLS_MKSFS_DIR := $(TOPDIR)/src/ht-mksfs
 TOOLS_MKSFS := $(OBJPATH_ROOT)/mksfs
 $(TOOLS_MKSFS): | $(OBJPATH_ROOT)
 	$(Q)$(MAKE) CC=$(HOSTCC) -f $(TOOLS_MKSFS_DIR)/Makefile -C $(TOOLS_MKSFS_DIR) all
+
 
 ## image
 SFSIMG_LINK := $(OBJPATH_ROOT)/sfs.img
@@ -174,28 +180,21 @@ endif
 ## image
 SFSIMG2_LINK := $(OBJPATH_ROOT)/sfs_cp.img
 SFSIMG2_FILE := $(OBJPATH_ROOT)/sfs_cp-orig.img
-TMPSFS2 := $(OBJPATH_ROOT)/.tmpsfs
+TMPSFS2 := $(OBJPATH_ROOT)/.tmpsfatfs
 sfsimg2: $(SFSIMG2_LINK)
 
 ## ??? why creating a symlink?
 $(SFSIMG2_LINK): $(SFSIMG2_FILE)
 	@ln -sf sfs_cp-orig.img $@
 
-$(SFSIMG2_FILE): $(TOOLS_MKSFS) userlib userapp FORCE kmod | $(OBJPATH_ROOT)
+$(SFSIMG2_FILE): $(TOOLS_MKSFATFS) | $(OBJPATH_ROOT)
 	@echo Making $@
 	@rm -rf $(TMPSFS2)
 	@mkdir -p $(TMPSFS2)
-	@mkdir -p $(TMPSFS2)/lib/modules
-	@cp -r $(TOPDIR)/src/kmod/*.ko $(TMPSFS2)/lib/modules/
-	@cp -r $(OBJPATH_ROOT)/user-ucore/bin $(TMPSFS2)
-ifneq ($(UCORE_TEST),)
-	@cp -r $(OBJPATH_ROOT)/user-ucore/testbin $(TMPSFS2)
-endif
-	@$(Q)$(MAKE) -f $(TOPDIR)/src/user-ucore/Makefile -C $(TOPDIR)/src/user-ucore initial_dir
-	-cp -r $(TOPDIR)/src/user-ucore/_initial/* $(TMPSFS2)
+	@cp $(OBJPATH_ROOT)/user-ucore/bin/* $(TMPSFS2)
 	@rm -f $@
-	@dd if=/dev/zero of=$@ bs=1M count=$(UCONFIG_SFS_IMAGE_SIZE) >/dev/null 2>&1
-	@$(TOOLS_MKSFS) $@ $(TMPSFS2)
+	@dd if=/dev/zero of=$@ bs=4K count=2048 >/dev/null 2>&1
+	@$(TOOLS_MKSFATFS) $@ $(abspath $(TMPSFS2))
 	@rm -rf $(TMPSFS2)
 
 endif

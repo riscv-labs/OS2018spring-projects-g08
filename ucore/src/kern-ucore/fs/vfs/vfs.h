@@ -9,6 +9,7 @@
 #include <fatfs/ffs.h>
 #include <yaffs2_direct/yaffs_vfs.h>
 
+
 struct inode;			// abstract structure for an on-disk file (inode.h)
 struct device;			// abstract structure for a device (dev.h)
 struct iobuf;			// kernel or userspace I/O buffer (iobuf.h)
@@ -50,8 +51,8 @@ struct fs {
 	} fs_info;
 	enum {
 		fs_type_pipe_info = 0x5678,
-		fs_type_sfs_info,
-		fs_type_sfatfs_info
+		fs_type_sfs_info = 0x1,
+		fs_type_sfatfs_info = 0x2
 #ifdef UCONFIG_HAVE_YAFFS2
 		fs_type_yaffs2_info,
 #endif

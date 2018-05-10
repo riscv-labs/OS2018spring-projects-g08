@@ -169,7 +169,7 @@ void dev_init(void)
 	init_device(stdin);
 	init_device(stdout);
 	init_device(disk0);
-	/* for Nand flash */
+	/* for second hard disc */
 	init_device(disk1);
 }
 

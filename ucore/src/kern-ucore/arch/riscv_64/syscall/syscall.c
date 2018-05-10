@@ -346,6 +346,17 @@ static uint64_t sys_list_module(uint64_t arg[]){
 	return 0;
 }
 
+static uint64_t sys_mount(uint64_t arg[]){
+	const char* device_name = (const char*)arg[0];
+	const char* fs_name = (const char*)arg[2];
+	return do_mount(device_name, fs_name);
+}
+
+static uint64_t sys_umount(uint64_t arg[]){
+	const char* device_name = (const char*)arg[0];
+	return do_umount(device_name);
+}
+
 // static uint64_t sys_halt(uint64_t arg[])
 // {
 // 	do_halt();
@@ -400,7 +411,9 @@ static uint64_t(*syscalls[]) (uint64_t arg[]) = {
         [SYS_mkfifo] sys_mkfifo,
  	    [SYS_init_module] sys_init_module,
 	    [SYS_cleanup_module] sys_cleanup_module,
-	    [SYS_list_module] sys_list_module
+	    [SYS_list_module] sys_list_module,
+		[SYS_mount] sys_mount,
+		[SYS_umount] sys_umount
     };
 
 #define NUM_SYSCALLS        ((sizeof(syscalls)) / (sizeof(syscalls[0])))

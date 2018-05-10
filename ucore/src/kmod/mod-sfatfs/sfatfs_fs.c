@@ -109,6 +109,17 @@ sfatfs_do_mount(struct device *dev, struct fs **fs_store) {
     if ((fs = alloc_fs(sfatfs)) == NULL) {
         return -E_NO_MEM;
     }
+    // kprintf("location of fs outside: %016lx\n", fs);
+    // kprintf("loc of type %016lx\n", &(fs->fs_type));
+    // kprintf("SIZE of it %d\n", sizeof(fs->fs_info));
+
+	// 	kprintf("LL %x %x %x %x %x %x\n", &fs->fs_info.__pipe_info, &fs->fs_info.__sfs_info,
+    //     	&fs->fs_info.__sfatfs_info, &fs->fs_info.__sfatfs_info.sfatfs_buffer,
+    //         &fs->fs_info.__sfatfs_info.fat, &fs->fs_info.__sfatfs_info.mutex_sem);
+	// 	kprintf("SZ %d %d %d %d %d %d %d %d %d %d %d %d\n", sizeof(struct pipe_fs), sizeof(struct sfs_fs),
+    //    		sizeof(struct sfatfs_fs), sizeof(struct sfatfs_super), sizeof(struct device),
+	// 		   sizeof(struct sfatfs_disk_inode), sizeof(semaphore_t), sizeof(atomic_t), sizeof(struct spinlock_s), 
+	// 		   sizeof(wait_queue_t), sizeof(int), sizeof(bool));
     struct sfatfs_fs *sfatfs = fsop_info(fs, sfatfs);
     sfatfs->dev = dev;
 

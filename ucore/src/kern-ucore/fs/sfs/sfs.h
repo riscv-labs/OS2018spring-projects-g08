@@ -73,7 +73,7 @@ struct sfs_inode {
 	struct sfs_disk_inode *din;	/* on-disk inode */
 	uint32_t ino;		/* inode number */
 	uint32_t flags;		/* inode flags */
-	bool dirty;		/* true if inode modified */
+	int dirty;		/* true if inode modified */
 	int reclaim_count;	/* kill inode if it hits zero */
 	semaphore_t sem;	/* semaphore for din */
 	list_entry_t inode_link;	/* entry for linked-list in sfs_fs */

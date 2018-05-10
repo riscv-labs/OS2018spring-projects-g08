@@ -76,7 +76,7 @@ struct sfatfs_disk_entry {
 struct sfatfs_inode {
     struct sfatfs_disk_inode *din;                     /* on-disk inode */
     uint16_t ino;                                   /* inode number */
-    bool dirty;                                     /* true if inode modified */
+    int dirty;                                     /* true if inode modified */
     int reclaim_count;                              /* kill inode if it hits zero */
     semaphore_t sem;                                /* semaphore for din */
     list_entry_t inode_link;                        /* entry for linked-list in sfatfs_fs */

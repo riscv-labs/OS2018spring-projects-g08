@@ -43,6 +43,12 @@ sfatfs_create_inode(struct sfatfs_fs *sfatfs, struct sfatfs_disk_inode *din, uin
     struct inode *node;
     if ((node = alloc_inode(sfatfs_inode)) != NULL) {
         vop_init(node, sfatfs_get_ops(din->attr), info2fs(sfatfs, sfatfs));
+        if(node == NULL){
+            kprintf("HAHAH, NULL\n");
+        }
+        if(!check_inode_type(node, sfatfs_inode)){
+            kprintf("HUU!\n");
+        }
         struct sfatfs_inode *sin = vop_info(node, sfatfs_inode);
         sin->din = din, sin->ino = ino, sin->dirty = 0, sin->reclaim_count = 1;
         sem_init(&(sin->sem), 1);

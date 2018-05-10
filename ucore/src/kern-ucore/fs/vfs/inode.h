@@ -46,10 +46,10 @@ struct inode {
 	} in_info;
 	enum {
 		inode_type_device_info = 0x1234,
-		inode_type_pipe_root_info,
-		inode_type_pipe_inode_info,
-		inode_type_sfs_inode_info,
-		inode_type_sfatfs_inode_info
+		inode_type_pipe_root_info = 0x1,
+		inode_type_pipe_inode_info = 0x2,
+		inode_type_sfs_inode_info = 0x3,
+		inode_type_sfatfs_inode_info = 0x4
 #ifdef UCONFIG_HAVE_YAFFS2
 		inode_type_yaffs2_inode_info,
 #endif
