@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <error.h>
 #include <clock.h>
+#include <mod.h>
 
 /*  ------------- semaphore mechanism design&implementation -------------
   ucore offers two kinds of semaphores: Kernel semaphores, which are used by kernel control paths; 
@@ -59,6 +60,8 @@ void sem_init(semaphore_t * sem, int value)
 	set_sem_count(sem, 0);
 	wait_queue_init(&(sem->wait_queue));
 }
+
+EXPORT_SYMBOL(sem_init);
 
 #ifdef UCONFIG_BIONIC_LIBC
 void sem_init_with_address(semaphore_t * sem, uintptr_t addr, int value)
@@ -125,11 +128,15 @@ void up(semaphore_t * sem)
 	__up(sem, WT_KSEM);
 }
 
+EXPORT_SYMBOL(up);
+
 void down(semaphore_t * sem)
 {
 	uint32_t flags = __down(sem, WT_KSEM, NULL);
 	assert(flags == 0);
 }
+
+EXPORT_SYMBOL(down);
 
 bool try_down(semaphore_t * sem)
 {

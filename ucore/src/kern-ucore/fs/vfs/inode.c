@@ -8,6 +8,7 @@
 #include <error.h>
 #include <assert.h>
 #include <kio.h>
+#include <mod.h>
 
 /* *
  * __alloc_inode - alloc a inode structure and initialize in_type
@@ -20,6 +21,8 @@ struct inode *__alloc_inode(int type)
 	}
 	return node;
 }
+
+EXPORT_SYMBOL(__alloc_inode);
 
 /* *
  * inode_init - initialize a inode structure
@@ -36,6 +39,8 @@ void inode_init(struct inode *node, const struct inode_ops *ops, struct fs *fs)
 	vop_ref_inc(node);
 }
 
+EXPORT_SYMBOL(inode_init);
+
 /* *
  * inode_kill - kill a inode structure
  * invoked by vop_kill
@@ -47,6 +52,8 @@ void inode_kill(struct inode *node)
 	kfree(node);
 }
 
+EXPORT_SYMBOL(inode_kill);
+
 /* *
  * inode_ref_inc - increment ref_count
  * invoked by vop_ref_inc
@@ -55,6 +62,8 @@ int inode_ref_inc(struct inode *node)
 {
 	return atomic_add_return(&(node->ref_count), 1);
 }
+
+EXPORT_SYMBOL(inode_ref_inc);
 
 /* *
  * inode_ref_dec - decrement ref_count
@@ -73,6 +82,8 @@ int inode_ref_dec(struct inode *node)
 	return ref_count;
 }
 
+EXPORT_SYMBOL(inode_ref_dec);
+
 /* *
  * inode_open_inc - increment the open_count
  * invoked by vop_open_inc
@@ -81,6 +92,8 @@ int inode_open_inc(struct inode *node)
 {
 	return atomic_add_return(&(node->open_count), 1);
 }
+
+EXPORT_SYMBOL(inode_open_inc);
 
 /* *
  * inode_open_dec - decrement the open_count
@@ -99,6 +112,8 @@ int inode_open_dec(struct inode *node)
 	return open_count;
 }
 
+EXPORT_SYMBOL(inode_open_dec);
+
 /* *
  * inode_check - check the various things being valid
  * called before all vop_* calls
@@ -113,6 +128,8 @@ void inode_check(struct inode *node, const char *opstr)
 	assert(ref_count < MAX_INODE_COUNT && open_count < MAX_INODE_COUNT);
 }
 
+EXPORT_SYMBOL(inode_check);
+
 /* *
  * null_vop_* - null vop functions
  * */
@@ -121,22 +138,35 @@ int null_vop_pass(void)
 	return 0;
 }
 
+EXPORT_SYMBOL(null_vop_pass);
+
 int null_vop_inval(void)
 {
 	return -E_INVAL;
 }
+
+EXPORT_SYMBOL(null_vop_inval);
 
 int null_vop_unimp(void)
 {
 	return -E_UNIMP;
 }
 
+EXPORT_SYMBOL(null_vop_unimp);
+
 int null_vop_isdir(void)
 {
 	return -E_ISDIR;
 }
 
+EXPORT_SYMBOL(null_vop_isdir);
+
 int null_vop_notdir(void)
 {
 	return -E_NOTDIR;
 }
+EXPORT_SYMBOL(null_vop_notdir);
+
+
+
+

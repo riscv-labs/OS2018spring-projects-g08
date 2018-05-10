@@ -6,6 +6,7 @@
 #include <inode.h>
 #include <sem.h>
 #include <error.h>
+#include <mod.h>
 
 static semaphore_t bootfs_sem;
 static struct inode *bootfs_node = NULL;
@@ -20,6 +21,8 @@ struct fs *__alloc_fs(int type)
 	}
 	return fs;
 }
+
+EXPORT_SYMBOL(__alloc_fs);
 
 void vfs_init(void)
 {
@@ -220,3 +223,6 @@ int do_umount(const char *devname)
 {
 	return vfs_unmount(devname);
 }
+
+EXPORT_SYMBOL(unregister_filesystem);
+EXPORT_SYMBOL(register_filesystem);

@@ -96,6 +96,21 @@ int apply_relocate_add(struct secthdr *sechdrs,
 			*location = SET_BITS(*location, 3, 2, PICK_BITS(tmp, 1, 2));
 			*location = SET_BITS(*location, 2, 1, PICK_BITS(tmp, 5, 1));
 			break;
+		case R_RISCV_BRANCH:
+			kprintf(" R_RISCV_BRANCH ");
+			tmp = (void*)val - (void*)location;
+			*location = SET_BITS(*location, 25, 7, (PICK_BITS(tmp, 12, 1) << 6) |
+				PICK_BITS(tmp, 5, 6));
+			*location = SET_BITS(*location, 7, 5, (PICK_BITS(tmp, 1, 4) << 1) |
+				PICK_BITS(tmp, 11, 1));
+			break;
+		case R_RISCV_JAL:
+			kprintf(" R_RISCV_JAL ");
+			tmp = (void*)val - (void*)location;
+			*location = SET_BITS(*location, 12, 20, (PICK_BITS(tmp, 20, 1) << 19) |
+				(PICK_BITS(tmp, 1, 10) << 9) | (PICK_BITS(tmp, 11, 1) << 8) |
+				PICK_BITS(tmp, 12, 8));
+			break;
 		default:
 			kprintf("apply_relocate: module %s: Unknown relocation: %u\n",
 					mod->name, GET_RELOC_TYPE(rel[i].r_info));
