@@ -32,7 +32,8 @@ uint64_t va_pa_offset;
 const size_t nbase = DRAM_BASE / PGSIZE;
 
 // virtual address of boot-time page directory
-pgd_t *boot_pgdir = NULL;
+extern pgd_t __boot_pgdir;
+pgd_t *boot_pgdir = &__boot_pgdir;
 // physical address of boot-time page directory
 uintptr_t boot_cr3;
 
@@ -208,7 +209,7 @@ static void page_init(void) {
 
 static void enable_paging(void) {
     // set page table
-    write_csr(satp, 0x8000000000000000 | (boot_cr3 >> RISCV_PGSHIFT));
+    write_csr(satp, SATP_SV39 | (boot_cr3 >> RISCV_PGSHIFT));
 }
 
 // boot_map_segment - setup&enable the paging mechanism
@@ -246,7 +247,9 @@ void *boot_alloc_page(void) {
 // pmm_init - setup a pmm to manage physical memory, build PDT&PT to setup
 // paging mechanism
 //         - check the correctness of pmm & paging mechanism, print PDT&PT
-void pmm_init(void) {        
+void pmm_init(void) {  
+    // We've already enabled paging
+    boot_cr3 = PADDR(boot_pgdir);      
     // We need to alloc/free the physical memory (granularity is 4KB or other
     // size).
     // So a framework of physical memory manager (struct pmm_manager)is defined
@@ -264,11 +267,6 @@ void pmm_init(void) {
     // use pmm->check to verify the correctness of the alloc/free function in a
     // pmm
     check_alloc_page();
-
-    // create boot_pgdir, an initial page directory(Page Directory Table, PDT)
-    boot_pgdir = boot_alloc_page();
-    memset(boot_pgdir, 0, PGSIZE);
-    boot_cr3 = PADDR(boot_pgdir);
 
     check_pgdir();
 
@@ -303,8 +301,6 @@ void pmm_init(void) {
     // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M =
     // phy_addr 0~4M
     // boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
-
-    enable_paging();
 
     // now the basic virtual memory map(see memalyout.h) is established.
     // check the correctness of the basic virtual memory map.
