@@ -1,26 +1,25 @@
 #include <mmu.h>
 #include <memlayout.h>
+#include <arch.h>
 
 # KCODE is the kernel virtual address of the first byte of physical memory.
 # The linker loads the executable as if starting at KCODE+2MB, but we
 # ask the loader to load the kernel at physical 2MB and then set up the
 # necessary memory mapping to switch to the higher address.
 # The value of KCODE must match the definitions in kernel.h and kernel.ld.
-#define KBASE 0xFFFF800000000000
+
+#define KBASE 0xFFFFFF8000000000
 
 # PADDR(x) is the physical memory address corresponding to x.
 # Until we set up the memory map, fairly late in this file, we have to
 # refer to PADDR(symbol) instead of symbol, so that we use the
 # physical address.
+
 #define PADDR(x) ((x) - KBASE)
 
     .section .text,"ax",%progbits
     .globl kern_entry
 kern_entry:
-
-    # Only permit NPROC processers to run.
-    li t1, NPROC
-    bge a0, t1, __die
 
     # setup paging
     la t0, __boot_pgdir
@@ -45,14 +44,8 @@ reallocated:
 
     mv s0, zero # clear frame pointer
 
-    # call into C code.
-    beqz a0, kern_init
+    tail kern_init
 
-    # call into C code.
-    j kern_init
-
-__die:
-    csrrci zero, sstatus, SSTATUS_SIE
 1:
     wfi
     j 1b
@@ -61,7 +54,8 @@ __die:
 .section .data
     .align PGSHIFT
 # Initial stack
-    .comm stack, KSTACKSIZE * 8 # FIXME: NPROC
+    .comm stack, KSTACKSIZE * 8 # FIXME: Most 8 processers.
+
     .align PGSHIFT
     .global __boot_pgdir
 __boot_pgdir:

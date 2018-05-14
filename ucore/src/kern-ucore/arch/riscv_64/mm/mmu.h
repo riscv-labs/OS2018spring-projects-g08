@@ -38,6 +38,8 @@
 
 #define PTE_SIZE 8 // One PTE is 8 bytes
 
+#ifndef __ASSEMBLER__
+
 // page directory index 0
 #define PDX0(la) ((((uintptr_t)(la)) >> PDX0SHIFT) & 0x1FF)
 
@@ -55,6 +57,28 @@
 
 // construct linear address from indexes and offset
 #define PGADDR(d1, d0, t, o) ((uintptr_t)((d1) << PDX1SHIFT | (d0) << PDX0SHIFT | (t) << PTXSHIFT | (o)))
+
+#else
+
+// page directory index 0
+#define PDX0(la) ((((la)) >> PDX0SHIFT) & 0x1FF)
+
+// page directory index 1
+#define PDX1(la) ((((la))>>PDX1SHIFT) & 0x1FF)
+
+// page table index
+#define PTX(la) ((((la)) >> PTXSHIFT) & 0x1FF)
+
+// page number field of address
+#define PPN(la) (((la)) >> PTXSHIFT)
+
+// offset in page
+#define PGOFF(la) (((la)) & 0xFFF)
+
+// construct linear address from indexes and offset
+#define PGADDR(d1, d0, t, o) (((d1) << PDX1SHIFT | (d0) << PDX0SHIFT | (t) << PTXSHIFT | (o)))
+
+#endif
 
 // address in page table or page directory entry
 #define PTE_ADDR(pte)   (((uintptr_t)(pte) & ~0x3FF) << (PTXSHIFT - PTE_PPN_SHIFT))

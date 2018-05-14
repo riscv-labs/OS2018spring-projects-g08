@@ -17,11 +17,11 @@
 #include <mp.h>
 //#include <mod.h>
 
-int kern_init(uintptr_t hartid, uintptr_t good) __attribute__((noreturn));
+int kern_init(uintptr_t hartid, void *fdt) __attribute__((noreturn));
 void grade_backtrace(void);
 static void lab1_switch_test(void);
 
-int kern_init(uintptr_t hartid, uintptr_t good) {
+int kern_init(uintptr_t hartid, void *fdt) {
     if(hartid != 0){
         // do nothing
         asm("wfi;");
