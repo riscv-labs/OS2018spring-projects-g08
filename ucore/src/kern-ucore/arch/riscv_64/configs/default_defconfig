@@ -5,6 +5,7 @@ CROSS_COMPILE="riscv64-unknown-elf-"
 ADDITIONAL_CFLAGS=""
 ADDITIONAL_LDFLAGS=""
 export LKM_FLAGS="-DARCH64"
+CFLAGS_FOR_BUILD="-g -O2 -DCONFIG_SMP"
 
 #
 # Memory Management
