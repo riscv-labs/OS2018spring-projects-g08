@@ -47,6 +47,8 @@ static inline int atomic_sub_return(atomic_t * v, int i)
  */
 static inline int atomic_read(const atomic_t *v)
 {
+    //TODO: use gcc __atomic_load
+
 	return (*(volatile int *)&(v)->counter);
 }
 
@@ -59,7 +61,7 @@ static inline int atomic_read(const atomic_t *v)
  */
 static inline void atomic_set(atomic_t *v, int i)
 {
-	v->counter = i;
+    __atomic_store((volatile int *)&(v->counter), &i, __ATOMIC_SEQ_CST);
 }
 
 /**
@@ -71,10 +73,7 @@ static inline void atomic_set(atomic_t *v, int i)
  */
 static inline void atomic_add(atomic_t *v, int i)
 {
-	// asm volatile(LOCK_PREFIX "addl %1,%0"
-	// 	     : "+m" (v->counter)
-	// 	     : "ir" (i));
-    v->counter += i;
+    __atomic_add_fetch((volatile int *)&(v->counter), i, __ATOMIC_SEQ_CST);
 }
 
 /**
@@ -86,10 +85,7 @@ static inline void atomic_add(atomic_t *v, int i)
  */
 static inline void atomic_sub(atomic_t *v, int i)
 {
-	// asm volatile(LOCK_PREFIX "subl %1,%0"
-	// 	     : "+m" (v->counter)
-	// 	     : "ir" (i));
-    v->counter -= i;
+    __atomic_sub_fetch((volatile int *)&(v->counter), i, __ATOMIC_SEQ_CST);
 }
 
 
@@ -104,14 +100,8 @@ static inline void atomic_sub(atomic_t *v, int i)
  */
 static inline int atomic_sub_and_test(int i, atomic_t *v)
 {
-	// unsigned char c;
-
-	// asm volatile(LOCK_PREFIX "subl %2,%0; sete %1"
-	// 	     : "+m" (v->counter), "=qm" (c)
-	// 	     : "ir" (i) : "memory");
-	// return c;
-    v->counter -= i;
-    if (v->counter) return 0;
+    int ret = __atomic_sub_fetch((volatile int *)&(v->counter), i, __ATOMIC_SEQ_CST);
+    if (ret) return 0;
     else return 1;
 }
 
@@ -124,9 +114,7 @@ static inline int atomic_sub_and_test(int i, atomic_t *v)
  */
 static inline void atomic_inc(atomic_t *v)
 {
-	// asm volatile(LOCK_PREFIX "incl %0"
-	// 	     : "+m" (v->counter));
-    v->counter++;
+	atomic_add(v, 1);
 }
 
 
@@ -138,9 +126,7 @@ static inline void atomic_inc(atomic_t *v)
  */
 static inline void atomic_dec(atomic_t *v)
 {
-	// asm volatile(LOCK_PREFIX "decl %0"
-	// 	     : "+m" (v->counter));
-    v->counter--;
+	atomic_sub(v, 1);
 }
 
 
@@ -154,15 +140,7 @@ static inline void atomic_dec(atomic_t *v)
  */
 static inline bool atomic_dec_test_zero(atomic_t * v)
 {
-	// unsigned char c;
-
-	// asm volatile(LOCK_PREFIX "decl %0; sete %1"
-	// 	     : "+m" (v->counter), "=qm" (c)
-	// 	     : : "memory");
-	// return c != 0;
-    v->counter -= 1;
-    if (v->counter) return 0;
-    else return 1;
+    return atomic_sub_and_test(1, v);
 }
 
 /**
@@ -175,14 +153,8 @@ static inline bool atomic_dec_test_zero(atomic_t * v)
  */
 static inline bool atomic_inc_test_zero(atomic_t * v)
 {
-	// unsigned char c;
-
-	// asm volatile(LOCK_PREFIX "incl %0; sete %1"
-	// 	     : "+m" (v->counter), "=qm" (c)
-	// 	     : : "memory");
-	// return c != 0;
-    v->counter += 1;
-    if (v->counter) return 0;
+    int ret = __atomic_add_fetch((volatile int *)&(v->counter), 1, __ATOMIC_SEQ_CST);
+    if (ret) return 0;
     else return 1;
 }
 
@@ -196,11 +168,7 @@ static inline bool atomic_inc_test_zero(atomic_t * v)
  * */
 static inline int atomic_add_return(atomic_t * v, int i)
 {
-	// int __i = i;
-	// asm volatile ("xaddl %0, %1":"+r" (i), "+m"(v->counter)::"memory");
-	// return i + __i;
-    v->counter += i;
-    return (v->counter);
+	return __atomic_add_fetch((volatile int *)&(v->counter), i, __ATOMIC_SEQ_CST);
 }
 
 /* *
@@ -212,20 +180,24 @@ static inline int atomic_add_return(atomic_t * v, int i)
  * */
 static inline int atomic_sub_return(atomic_t * v, int i)
 {
-	return atomic_add_return(v, -i);
+	return __atomic_sub_fetch((volatile int *)&(v->counter), i, __ATOMIC_SEQ_CST);
 }
 
 static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
 {
 	// return cmpxchg(&v->counter, old, new);
+    panic("Not implemented!\n");
     return 0;
 }
 
 static inline int atomic_xchg(atomic_t *v, int new)
 {
 	// return xchg(&v->counter, new);
+    panic("Not implemented!\n");
     return 0;
 }
+
+#define atomic_compare_and_swap(ptr, oval, nval) __sync_bool_compare_and_swap(ptr, oval, nval)
 
 
 

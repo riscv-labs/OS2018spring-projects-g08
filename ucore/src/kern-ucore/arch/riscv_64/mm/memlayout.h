@@ -62,6 +62,7 @@
 
 #define KSTACKPAGE          2                           // # of pages in kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
+#define KSTACKSHIFT         14
 
 #define USERTOP             0x80000000
 #define USTACKTOP           USERTOP
