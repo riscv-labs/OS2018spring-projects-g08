@@ -252,12 +252,7 @@ static inline void change_bit(int nr, volatile void *addr) {
  * @nr:     the bit to test
  * @addr:   the address to count from
  * */
- #include <kio.h>
 static inline bool test_bit(int nr, volatile void *addr) {
-    // if (nr == 0) {
-    //     kprintf("addr: 0x%lx\n", addr);
-    //     kprintf("addr: 0x%lx\n", (volatile uint64_t *)addr);    
-    // }
     nr = nr % __riscv_xlen;
     uint64_t mask = 1UL << nr;
     uint64_t ret = __atomic_xor_fetch((volatile uint64_t *)addr, 0, __ATOMIC_SEQ_CST) & mask;
