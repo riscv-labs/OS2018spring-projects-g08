@@ -13,7 +13,7 @@
 // NUMA nodes.
 
 
-#ifndef __PERCPU_H
+#if !defined(__PERCPU_H) && !defined(ARCH_RISCV64)
 #define __PERCPU_H
 #include <arch.h>
 

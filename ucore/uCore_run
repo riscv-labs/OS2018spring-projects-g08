@@ -142,6 +142,6 @@ case $UCONFIG_ARCH in
         fi
         exec $QEMU -machine virt \
             -kernel $BUILD_DIR/kernel.img \
-            -nographic -smp cpus=4
+            -nographic
         ;;
 esac

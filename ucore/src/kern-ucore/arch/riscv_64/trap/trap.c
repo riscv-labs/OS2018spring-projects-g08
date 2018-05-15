@@ -295,7 +295,6 @@ trap(struct trapframe *tf) {
         current->tf = tf;
 
         bool in_kernel = trap_in_kernel(tf);
-
         trap_dispatch(tf);
 
         current->tf = otf;

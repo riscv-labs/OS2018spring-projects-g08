@@ -8,7 +8,11 @@
 #include <unistd.h>
 #include <sem.h>
 #include <event.h>
+#ifdef ARCH_RISCV64
+#include <smp.h>
+#else
 #include <mp.h>
+#endif
 #include <elf.h>
 #include <arch_proc.h>
 #include <signal.h>
@@ -106,8 +110,13 @@ struct linux_timespec {
 #define le2proc(le, member)         \
   to_struct((le), struct proc_struct, member)
 
+#ifdef ARCH_RISCV64
+#define current (mycpu()->proc)
+#define idleproc (mycpu()->idle)
+#else
 #define current (mycpu()->__current)
 #define idleproc (mycpu()->idleproc)
+#endif
 
 extern struct proc_struct *initproc;
 extern struct proc_struct *kswapd;

@@ -12,14 +12,20 @@
 #include <arch.h>
 #include <slab.h>
 #include <proc.h>
+#ifdef ARCH_RISCV64
+#include <smp.h>
+#else
 #include <mp.h>
+#endif
 #include <vmm.h>
 #include <swap.h>
 #include <ide.h>
 #include <ramdisk.h>
 
+#ifndef ARCH_RISCV64
 static DEFINE_PERCPU_NOINIT(size_t, used_pages);
 DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
+#endif
 
 
 // virtual address of physical page array
@@ -132,7 +138,12 @@ try_again:
 	}
 #endif
 
+#ifndef ARCH_RISCV64
 	get_cpu_var(used_pages) += n;
+#else
+    mycpu()->used_pages += n;    
+#endif
+
 	return page;
 }
 
@@ -144,12 +155,20 @@ void free_pages(struct Page *base, size_t n) {
         pmm_manager->free_pages(base, n);
     }
     local_intr_restore(intr_flag);
+#ifndef ARCH_RISCV64
     get_cpu_var(used_pages) -= n;
+#else
+    return mycpu()->used_pages -= n;    
+#endif
 }
 
 size_t nr_used_pages(void)
 {
+#ifndef ARCH_RISCV64
 	return get_cpu_var(used_pages);
+#else
+    return mycpu()->used_pages;
+#endif
 }
 
 // nr_free_pages - call pmm->nr_free_pages to get the size (nr*PAGESIZE)
@@ -257,9 +276,11 @@ void pmm_init(void) {
     // Now the first_fit/best_fit/worst_fit/buddy_system pmm are available.
     init_pmm_manager();
     
+    
     // detect physical memory space, reserve already used memory,
     // then use pmm->init_memmap to create free page list
     page_init();
+
 
     // use pmm->check to verify the correctness of the alloc/free function in a
     // pmm
@@ -317,10 +338,18 @@ void pmm_init(void) {
 
 void pmm_init_ap(void)
 {
+    #ifdef ARCH_RISCV64
 	list_entry_t *page_struct_free_list =
+	    &mycpu()->page_struct_free_list;
+	list_init(page_struct_free_list);
+    
+	mycpu()->used_pages = 0;
+    #else
+    list_entry_t *page_struct_free_list =
 	    get_cpu_ptr(page_struct_free_list);
 	list_init(page_struct_free_list);
 	get_cpu_var(used_pages) = 0;
+    #endif
 }
 
 // invalidate a TLB entry, but only if the page tables being
@@ -337,6 +366,7 @@ void tlb_invalidate(pgd_t *pgdir, uintptr_t la) {
 }
 
 void check_alloc_page(void) {
+    assert(myid() == 0);
     pmm_manager->check();
     kprintf("check_alloc_page() succeeded!\n");
 }

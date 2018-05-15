@@ -8,10 +8,18 @@
 #include <sched_MLFQ.h>
 #include <sched_mpRR.h>
 #include <kio.h>
+#ifdef ARCH_RISCV64
+#include <smp.h>
+#else
 #include <mp.h>
+#endif
 #include <trap.h>
+#ifndef ARCH_RISCV64
 #include <sysconf.h>
+#endif
 #include <spinlock.h>
+
+extern struct cpu cpus[];
 
 /* we may use lock free list */
 struct __timer_list_t{
@@ -22,7 +30,7 @@ static struct __timer_list_t __timer_list;
 #define timer_list __timer_list.tl
 
 static struct sched_class *sched_class;
-static DEFINE_PERCPU_NOINIT(struct run_queue, runqueues);
+// static DEFINE_PERCPU_NOINIT(struct run_queue, runqueues);
 
 //static struct run_queue *rq;
 
@@ -30,11 +38,13 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 {
 	if (proc != idleproc) {
 		//TODO load balance
-		struct run_queue *rq = get_cpu_ptr(runqueues);
+		struct run_queue *rq = &mycpu()->rqueue;
 		if(proc->flags & PF_PINCPU){
+			#ifndef ARCH_RISCV64
 			assert(proc->cpu_affinity >= 0 
 					&& proc->cpu_affinity < sysconf.lcpu_count);
-			rq = per_cpu_ptr(runqueues, proc->cpu_affinity);
+			#endif
+			rq = &cpus[proc->cpu_affinity].rqueue;
 		}
 		//XXX lock
 		sched_class->enqueue(rq, proc);
@@ -43,20 +53,20 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 
 static inline void sched_class_dequeue(struct proc_struct *proc)
 {
-	struct run_queue *rq = get_cpu_ptr(runqueues);
+	struct run_queue *rq = &mycpu()->rqueue;
 	sched_class->dequeue(rq, proc);
 }
 
 static inline struct proc_struct *sched_class_pick_next(void)
 {
-	struct run_queue *rq = get_cpu_ptr(runqueues);
+	struct run_queue *rq = &mycpu()->rqueue;
 	return sched_class->pick_next(rq);
 }
 
 static void sched_class_proc_tick(struct proc_struct *proc)
 {
 	if (proc != idleproc) {
-		struct run_queue *rq = get_cpu_ptr(runqueues);
+		struct run_queue *rq = &mycpu()->rqueue;
 		sched_class->proc_tick(rq, proc);
 	} else {
 		proc->need_resched = 1;
@@ -71,13 +81,13 @@ void sched_init(void)
 
 	//rq = __rq;
 	//list_init(&(__rq[0].rq_link));
-	struct run_queue *rq0 = get_cpu_ptr(runqueues);
+	struct run_queue *rq0 = &mycpu()->rqueue;
 	list_init(&(rq0->rq_link));
 	rq0->max_time_slice = 8;
 
 	int i;
-	for (i = 1; i < sysconf.lcpu_count; i++) {
-		struct run_queue *rqi = per_cpu_ptr(runqueues, i);
+	for (i = 1; i < NCPU; i++) {
+		struct run_queue *rqi = &cpus[i].rqueue;
 		list_add_before(&(rq0->rq_link), 
 				&(rqi->rq_link));
 		rqi->max_time_slice = rq0->max_time_slice;
@@ -90,8 +100,8 @@ void sched_init(void)
 #else
 	sched_class = &MPRR_sched_class;
 #endif
-	for (i = 0; i < sysconf.lcpu_count; i++) {
-		struct run_queue *rqi = per_cpu_ptr(runqueues, i);
+	for (i = 0; i < NCPU; i++) {
+		struct run_queue *rqi = &cpus[i].rqueue;
 		sched_class->init(rqi);
 	}
 
@@ -120,7 +130,11 @@ void wakeup_proc(struct proc_struct *proc)
 			proc->state = PROC_RUNNABLE;
 			proc->wait_state = 0;
 			if (proc != current) {
+				#ifdef ARCH_RISCV64
+				assert(proc->pid >= NCPU);
+				#else
 				assert(proc->pid >= sysconf.lcpu_count);
+				#endif
 				sched_class_enqueue(proc);
 			}
 		} else {
@@ -173,7 +187,12 @@ void schedule(void)
 	struct proc_struct *next;
 
 	local_intr_save(intr_flag);
+
+	#ifdef ARCH_RISCV64
+	int lcpu_count = NCPU;
+	#else
 	int lcpu_count = sysconf.lcpu_count;
+	#endif
 	{
 		current->need_resched = 0;
 		if (current->state == PROC_RUNNABLE

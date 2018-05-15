@@ -1,6 +1,6 @@
 #dirs-y := schedule syscall fs process mm libs sync kmodule sysconf numa
 
-dirs-y := schedule syscall process mm libs sync sysconf numa fs kmodule
+dirs-y := schedule syscall process mm libs sync numa fs kmodule smp
 
 dirs-y += arch/$(ARCH)
 

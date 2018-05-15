@@ -15,7 +15,7 @@
  *
  * =====================================================================================
  */
-#ifndef __MM_REFCACHE_H
+#if !defined(__MM_REFCACHE_H) && !defined(ARCH_RISCV64)
 #define __MM_REFCACHE_H
 
 #include <arch.h>

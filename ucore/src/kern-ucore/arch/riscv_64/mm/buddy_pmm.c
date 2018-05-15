@@ -19,6 +19,8 @@ struct Zone {
 } zones[MAX_ZONE_NUM] = { {
 NULL}};
 
+static inline ppn_t page2idx(struct Page *page);
+
 //buddy_init - init the free_list(0 ~ MAX_ORDER) & reset nr_free(0 ~ MAX_ORDER)
 static void buddy_init(void)
 {
@@ -108,6 +110,7 @@ static struct Page *buddy_alloc_pages(size_t n)
 	if (page != NULL && n != order_size) {
 		free_pages(page + n, order_size - n);
 	}
+	
 	return page;
 }
 

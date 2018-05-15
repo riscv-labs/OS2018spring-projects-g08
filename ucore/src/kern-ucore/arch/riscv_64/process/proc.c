@@ -79,13 +79,16 @@ int kernel_thread(int (*fn) (void *), void *arg, uint32_t clone_flags)
 void forkret(void)
 {
 	if (!trap_in_kernel(current->tf)) {
+		#ifndef ARCH_RISCV64
 		kern_leave();
+		#endif
 	}
 	forkrets(current->tf);
 }
 
 int kernel_execve(const char *name, const char **argv, const char **kenvp)
 {
+	kprintf("kernel execve:::\n");
 	uintptr_t argc = 0, ret;
     while (argv[argc] != NULL) {
         argc ++;
@@ -121,6 +124,7 @@ init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 	// Keep sstatus
 	uintptr_t sstatus = tf->status;
 	memset(tf, 0, sizeof(struct trapframe));
+
 	tf->gpr.sp = stacktop;
 	tf->epc = elf->e_entry;
 	tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);

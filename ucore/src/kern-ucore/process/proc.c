@@ -21,9 +21,11 @@
 #include <mbox.h>
 #include <kio.h>
 #include <stdio.h>
-#include <mp.h>
+#include <smp.h>
 #include <resource.h>
+#ifndef ARCH_RISCV64
 #include <sysconf.h>
+#endif
 #include <refcache.h>
 #include <spinlock.h>
 
@@ -150,7 +152,7 @@ static int get_pid(void)
 	list_entry_t *list = &proc_list, *le;
 	static int next_safe = MAX_PID, last_pid = MAX_PID;
 	if (++last_pid >= MAX_PID) {
-		last_pid = sysconf.lcpu_count;
+		last_pid = NCPU;
 		goto inside;
 	}
 	if (last_pid >= next_safe) {
@@ -195,6 +197,8 @@ void proc_run(struct proc_struct *proc)
 			// for tls switch
 			tls_switch(next);
 #endif //UCONFIG_BIONIC_LIBC
+
+
 			switch_to(&(prev->context), &(next->context));
 		}
 		local_intr_restore(intr_flag);
@@ -232,6 +236,7 @@ struct proc_struct *find_proc(int pid)
 static int setup_kstack(struct proc_struct *proc)
 {
 	struct Page *page = alloc_pages(KSTACKPAGE);
+	
 	if (page != NULL) {
 		proc->kstack = (uintptr_t) page2kva(page);
 		return 0;
@@ -1979,10 +1984,11 @@ static int init_main(void *arg)
 	set_proc_name(kswapd, "kswapd");
 #else
 	kprintf("init_main:: swapping is disabled.\n");
-#endif
 	
+#endif
 	int ret;
 	char root[] = "disk0:";
+	
 	if ((ret = vfs_set_bootfs(root)) != 0) {
 		panic("set boot fs failed: %e.\n", ret);
 	}
@@ -1993,6 +1999,7 @@ static int init_main(void *arg)
 	unsigned int nr_process_store = nr_process;
 
 	pid = ucore_kernel_thread(user_main, NULL, 0);
+
 	if (pid <= 0) {
 		panic("create user_main failed.\n");
 	}
@@ -2023,15 +2030,16 @@ static int init_main(void *arg)
 	       && initproc->optr == NULL);
 	assert(kswapd->cptr == NULL && kswapd->yptr == NULL
 	       && kswapd->optr == NULL);
-	assert(nr_process == 2 + sysconf.lcpu_count);
+	assert(nr_process == 2 + NCPU);
 #else
-	assert(nr_process == 1 + sysconf.lcpu_count);
+	assert(nr_process == 1 + NCPU);
 #endif
 	assert(nr_used_pages_store == nr_used_pages());
 	assert(slab_allocated_store == slab_allocated());
 	kprintf("init check memory pass.\n");
 	return 0;
 }
+
 
 // proc_init - set up the first kernel thread idleproc "idle" by itself and 
 //           - create the second kernel thread init_main
@@ -2082,8 +2090,9 @@ void proc_init(void)
 	set_proc_name(initproc, "kinit");
 
 	assert(idleproc != NULL && idleproc->pid == cpuid);
-	assert(initproc != NULL && initproc->pid == sysconf.lcpu_count);
+	assert(initproc != NULL && initproc->pid == NCPU);
 }
+
 
 void proc_init_ap(void)
 {
@@ -2114,7 +2123,7 @@ void proc_init_ap(void)
 
 	idleproc = idle;
 	current = idle;
-#if 1
+#if 0
 	int pid;
 	char proc_name[32];
 	if((pid = ucore_kernel_thread(krefcache_cleaner, NULL, 0)) <= 0){
