@@ -127,6 +127,7 @@ static volatile int in_swap_tick_event = 0;
 extern struct mm_struct *check_mm_struct;
 
 void interrupt_handler(struct trapframe *tf) {
+
     intptr_t cause = (tf->cause << 1) >> 1;
     switch (cause) {
         case IRQ_U_SOFT:
@@ -153,7 +154,14 @@ void interrupt_handler(struct trapframe *tf) {
             // directly.
             // clear_csr(sip, SIP_STIP);
             clock_set_next_event();
-            ++ticks;
+            
+            // if(ticks % 100 == 0 && myid() == 1)
+            //     kprintf("TIMER on 1\n");
+            if(myid() == 0){ // TODO: this is not so symmetry
+            // find a more elegant solution
+                ++ticks;
+            }
+
             run_timer_list();
 
             serial_intr();

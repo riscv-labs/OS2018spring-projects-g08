@@ -28,7 +28,16 @@ static void ap_init(uintptr_t hartid, uintptr_t good){
     load_pgdir(NULL);
     intr_enable();  // enable irq interrupt
 
+    pic_init();  // init interrupt controller
+    idt_init();  // init interrupt descriptor table
+
     proc_init_ap();
+    mycpu()->started = 1;
+    kprintf("AP %d has started.\n", myid());
+
+    // clock_init();  // init clock interrupt
+    intr_enable();
+
     cpu_idle();                 // run idle process    
 }
 
