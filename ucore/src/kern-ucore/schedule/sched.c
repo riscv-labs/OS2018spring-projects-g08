@@ -43,9 +43,13 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 			#ifndef ARCH_RISCV64
 			assert(proc->cpu_affinity >= 0 
 					&& proc->cpu_affinity < sysconf.lcpu_count);
+			#else
+			assert(proc->cpu_affinity >= 0 
+					&& proc->cpu_affinity < NCPU);
 			#endif
 			rq = &cpus[proc->cpu_affinity].rqueue;
 		}
+		assert(proc->cpu_affinity == myid());
 		//XXX lock
 		sched_class->enqueue(rq, proc);
 	}
@@ -60,6 +64,7 @@ static inline void sched_class_dequeue(struct proc_struct *proc)
 static inline struct proc_struct *sched_class_pick_next(void)
 {
 	struct run_queue *rq = &mycpu()->rqueue;
+	
 	return sched_class->pick_next(rq);
 }
 
@@ -79,17 +84,23 @@ void sched_init(void)
 {
 	list_init(&timer_list);
 
+	int id = myid();
 	//rq = __rq;
 	//list_init(&(__rq[0].rq_link));
-	struct run_queue *rq0 = &mycpu()->rqueue;
+	struct run_queue *rq0 = &cpus[id].rqueue;
 	list_init(&(rq0->rq_link));
 	rq0->max_time_slice = 8;
 
 	int i;
-	for (i = 1; i < NCPU; i++) {
+	for (i = 0; i < NCPU; i++) {
+		if(i == id)
+			continue;
 		struct run_queue *rqi = &cpus[i].rqueue;
-		list_add_before(&(rq0->rq_link), 
-				&(rqi->rq_link));
+		list_init(&(rqi->rq_link));
+		// list_add_before(&(rq0->rq_link), 
+		// 		&(rqi->rq_link));
+		// yzjc: I don't know what you are doing here
+		// MLFQ does not want this
 		rqi->max_time_slice = rq0->max_time_slice;
 	}
 
@@ -196,13 +207,14 @@ void schedule(void)
 	{
 		current->need_resched = 0;
 		if (current->state == PROC_RUNNABLE
-		    && current->pid >= lcpu_count) {
+		    && current->pid >= lcpu_count) { // if not an idle proc
 			sched_class_enqueue(current);
 		}
 
 		next = sched_class_pick_next();
-		if (next != NULL)
+		if (next != NULL){
 			sched_class_dequeue(next);
+		}
 		else
 			next = idleproc;
 		next->runs++;

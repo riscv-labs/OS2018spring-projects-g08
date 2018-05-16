@@ -3,6 +3,10 @@
 #include <intr.h>
 #include <monitor.h>
 #include <kio.h>
+#ifdef ARCH_RISCV64
+#include <proc.h>
+#include <smp.h>
+#endif
 
 static bool is_panic = 0;
 
@@ -21,6 +25,9 @@ void __panic(const char *file, int line, const char *fmt, ...)
 	va_list ap;
 	va_start(ap, fmt);
 	kprintf("kernel panic at %s:%d:\n    ", file, line);
+	#ifdef ARCH_RISCV64
+	kprintf("At CPU %d, process %s\n", myid(), current->name);
+	#endif
 	vkprintf(fmt, ap);
 	kprintf("\n");
 	va_end(ap);

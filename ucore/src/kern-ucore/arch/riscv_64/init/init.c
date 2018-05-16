@@ -35,7 +35,7 @@ static void ap_init(uintptr_t hartid, uintptr_t good){
     mycpu()->started = 1;
     kprintf("AP %d has started.\n", myid());
 
-    // clock_init();  // init clock interrupt
+    clock_init();  // init clock interrupt
     intr_enable();
 
     cpu_idle();                 // run idle process    

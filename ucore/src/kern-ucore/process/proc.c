@@ -1222,7 +1222,7 @@ int do_execve(const char *filename, const char **argv, const char **envp)
 	}
 #endif
 	snprintf(local_name, sizeof(local_name), "<null> %d", current->pid);
-
+	kprintf("Process %s = %s\n", filename, local_name);
 	int argc = 0, envc = 0;
 	if ((ret = copy_kargv(mm, kargv, argv, EXEC_MAX_ARG_NUM, &argc)) != 0) {
 		unlock_mm(mm);
@@ -2081,6 +2081,9 @@ void proc_init(void)
 	idleproc = idle;
 	current = idle;
 
+	set_proc_cpu_affinity(idle, cpuid);
+	set_proc_cpu_affinity(current, cpuid);
+
 	int pid = ucore_kernel_thread(init_main, NULL, 0);
 	if (pid <= 0) {
 		panic("create init_main failed.\n");
@@ -2088,6 +2091,7 @@ void proc_init(void)
 
 	initproc = find_proc(pid);
 	set_proc_name(initproc, "kinit");
+
 
 	assert(idleproc != NULL && idleproc->pid == cpuid);
 	assert(initproc != NULL && initproc->pid == NCPU);
@@ -2121,8 +2125,12 @@ void proc_init_ap(void)
 	set_proc_name(idle, namebuf);
 	nr_process++;
 
+	set_proc_cpu_affinity(idle, cpuid);
+
 	idleproc = idle;
 	current = idle;
+
+	
 #if 0
 	int pid;
 	char proc_name[32];
@@ -2135,7 +2143,6 @@ void proc_init_ap(void)
 	set_proc_cpu_affinity(cleaner, myid());
 	nr_process++;
 #endif
-
 	assert(idleproc != NULL && idleproc->pid == cpuid);
 }
 

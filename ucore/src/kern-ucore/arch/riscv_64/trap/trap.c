@@ -164,8 +164,10 @@ void interrupt_handler(struct trapframe *tf) {
 
             run_timer_list();
 
-            serial_intr();
-            dev_stdin_write(cons_getc());
+            if(myid() == 0){
+                serial_intr();
+                dev_stdin_write(cons_getc());
+            }
             break;
         case IRQ_H_TIMER:
             kprintf("Hypervisor software interrupt\n");
