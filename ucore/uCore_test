@@ -6,7 +6,7 @@ stderr=/dev/stderr
 BUILD_DIR=${BUILD_DIR:-obj}
 RECORD_MODE=${RECORD_MODE:-}
 TEST_CASE=
-TIMEOUT=10
+TIMEOUT=100
 WAIT_TIMEOUT=0
 MAX_PROCS=`grep processor /proc/cpuinfo | wc -l`
 
@@ -393,7 +393,7 @@ total=`cat $BUILD_DIR/$TOTAL_COUNT_TMP | wc -m`
 
 echo "========== Test Summary ==========" >> $SUMMARY
 printf "%-8s%-20s%-20s%-10s%-10s\n" "" "passed(unexpected)" "failed(unexpected)" broken total >> $SUMMARY
-printf "%-8s%-20s%-20s%-10s%-10s\n" $UCONFIG_ARCH "$passed($passed_unexpected)" "$failed($failed_unexpected)" $broken $total >> $SUMMARY
+printf "%-8s%-20s%-20s%-10s%-10s\n" $UCONFIG_ARCH " $passed($passed_unexpected)" "$failed($failed_unexpected)" $broken $total >> $SUMMARY
 
 rm -f $BUILD_DIR/$TOTAL_COUNT_TMP $BUILD_DIR/$PASSED_COUNT_TMP $BUILD_DIR/$FAILED_COUNT_TMP $BUILD_DIR/$BROKEN_COUNT_TMP
 rm -f $BUILD_DIR/kernel.img.*

@@ -51,7 +51,7 @@ copy_thread(uint32_t clone_flags, struct proc_struct *proc, uintptr_t rsp,
 
     // Set a0 to 0 so a child process knows it's just forked
     proc->tf->gpr.a0 = 0;
-    proc->tf->gpr.sp = (rsp == 0) ? (uintptr_t)proc->tf - 4 : rsp;
+    proc->tf->gpr.sp = (rsp == 0) ? (uintptr_t)proc->tf : rsp;
 
     proc->context.ra = (uintptr_t)forkret;
     proc->context.sp = (uintptr_t)(proc->tf);
