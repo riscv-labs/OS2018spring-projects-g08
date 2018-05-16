@@ -200,11 +200,28 @@ run_test() {
     ) > /dev/null 2>&1 &
     pid=$!
     sleep $WAIT_TIMEOUT
-    "$UCONFIG_CROSS_COMPILE"gdb -batch -nx \
-        -ex "target remote :$[ $$ % 10000 + 40000 ]" \
-        -ex "file $BUILD_DIR/kernel/kernel-$UCONFIG_ARCH.elf.$$"  \
-        -ex "b $BRK_FUNC" \
-        -ex "c" > /dev/null 2>&1
+
+    if [ "$UCONFIG_CROSS_COMPILE" == "riscv32-unknown-elf-" ]; then
+        "$UCONFIG_CROSS_COMPILE"gdb -batch -nx \
+            -ex "set arch riscv:rv32" \
+            -ex "target remote :$[ $$ % 10000 + 40000 ]" \
+            -ex "file $BUILD_DIR/kernel/kernel-$UCONFIG_ARCH.elf.$$"  \
+            -ex "b $BRK_FUNC" \
+            -ex "c" > /dev/null 2>&1
+    elif [ "$UCONFIG_CROSS_COMPILE" == "riscv64-unknown-elf-" ]; then
+        "$UCONFIG_CROSS_COMPILE"gdb -batch -nx \
+            -ex "set arch riscv:rv64" \
+            -ex "target remote :$[ $$ % 10000 + 40000 ]" \
+            -ex "file $BUILD_DIR/kernel/kernel-$UCONFIG_ARCH.elf.$$"  \
+            -ex "b $BRK_FUNC" \
+            -ex "c" > /dev/null 2>&1
+    else
+        "$UCONFIG_CROSS_COMPILE"gdb -batch -nx \
+            -ex "target remote :$[ $$ % 10000 + 40000 ]" \
+            -ex "file $BUILD_DIR/kernel/kernel-$UCONFIG_ARCH.elf.$$"  \
+            -ex "b $BRK_FUNC" \
+            -ex "c" > /dev/null 2>&1
+    fi
 
     kill $pid > /dev/null 2>&1
     SFSIMG_CLEAN=0
