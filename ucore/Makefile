@@ -161,9 +161,9 @@ $(SFSIMG_FILE): $(TOOLS_MKSFS) userlib userapp FORCE kmod | $(OBJPATH_ROOT)
 	@mkdir -p $(TMPSFS)/lib/modules
 	@cp -r $(TOPDIR)/src/kmod/*.ko $(TMPSFS)/lib/modules/
 	@cp -r $(OBJPATH_ROOT)/user-ucore/bin $(TMPSFS)
-ifneq ($(UCORE_TEST),)
+#ifneq ($(UCORE_TEST),)
 	@cp -r $(OBJPATH_ROOT)/user-ucore/testbin $(TMPSFS)
-endif
+#endif
 	@$(Q)$(MAKE) -f $(TOPDIR)/src/user-ucore/Makefile -C $(TOPDIR)/src/user-ucore initial_dir
 	-cp -r $(TOPDIR)/src/user-ucore/_initial/* $(TMPSFS)
 	@rm -f $@
