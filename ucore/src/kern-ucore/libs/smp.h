@@ -5,6 +5,7 @@
 #include <sched.h>
 #include <mmu.h>
 #include <vmm.h>
+#include <spinlock.h>
 
 #define NCPU		UCONFIG_NR_CPUS
 
@@ -22,6 +23,7 @@ struct cpu {
   struct run_queue rqueue; // cpu specific run queue
   size_t used_pages;
   list_entry_t page_struct_free_list;
+  spinlock_s rqueue_lock;
   // and idle process
 };
 

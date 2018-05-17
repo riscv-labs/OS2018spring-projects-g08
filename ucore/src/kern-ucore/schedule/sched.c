@@ -18,7 +18,6 @@
 #include <sysconf.h>
 #endif
 #include <spinlock.h>
-
 extern struct cpu cpus[];
 
 /* we may use lock free list */
@@ -34,10 +33,77 @@ static struct sched_class *sched_class;
 
 //static struct run_queue *rq;
 
+static const int MAX_MOVE_PROC_NUM = 100;
+
+static inline void move_run_queue(int src_cpu_id, int dst_cpu_id, struct proc_struct *proc) {
+    struct run_queue *s_rq = &cpus[src_cpu_id].rqueue;
+    struct run_queue *d_rq = &cpus[dst_cpu_id].rqueue;
+    int intr_flag;
+    sched_class->dequeue(s_rq, proc);
+
+    spin_lock_irqsave(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
+    sched_class->enqueue(d_rq, proc);
+    spin_unlock_irqrestore(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
+
+    proc->cpu_affinity = dst_cpu_id;
+}
+
+static inline int min(int a, int b) {
+    if (a < b) return a;
+    else return b;
+}
+
+static inline void load_balance()
+{
+    bool intr_flag[NCPU];
+    for (int i = 0; i < NCPU; ++i) {
+        //spin_lock_irqsave(&cpus[i].rqueue_lock, intr_flag[i]);
+        spinlock_acquire(&cpus[i].rqueue_lock);
+    }
+	#ifdef ARCH_RISCV64
+	int lcpu_count = NCPU;
+	#else
+	int lcpu_count = sysconf.lcpu_count;
+	#endif
+    double load_sum = 0, load_max = -1, my_load = 0;
+    int max_id = 0;
+    
+   
+    for (int i = 0; i < lcpu_count; ++i) {
+        double load = sched_class->get_load(&(cpus[i].rqueue));
+        load_sum += load;
+        if (load > load_max) {
+            load_max = load;
+            max_id = i;
+        }
+    }
+    load_sum /= lcpu_count;
+    
+    //bool intr_flag;
+    //spin_lock_irqsave(&cpus[max_id].rqueue_lock, intr_flag);
+    {
+        load_max = sched_class->get_load(&cpus[max_id].rqueue);
+        my_load = sched_class->get_load(&cpus[myid()].rqueue);
+        int needs = min((int)(load_max - load_sum), (int)(load_sum - my_load));
+        needs = min(needs, MAX_MOVE_PROC_NUM);
+        if (needs > 3 && myid() != max_id) {
+            kprintf("===========%d %d %d======\n", myid(), max_id, needs);
+            struct proc_struct* procs_moved[MAX_MOVE_PROC_NUM];//TODO: max proc num in rq
+            int num = sched_class->get_proc(&cpus[max_id].rqueue, procs_moved, needs);
+            for (int i = 0; i < num; ++i)
+                move_run_queue(max_id, myid(), procs_moved[i]);
+        }
+    }
+    //spin_unlock_irqrestore(&cpus[max_id].rqueue_lock, intr_flag);
+    for (int i = 0; i < NCPU; ++i) {
+        //spin_unlock_irqrestore(&cpus[i].rqueue_lock, intr_flag[i]);
+        spinlock_release(&cpus[i].rqueue_lock);
+    }
+}
+
 static inline void sched_class_enqueue(struct proc_struct *proc)
 {
 	if (proc != idleproc) {
-		//TODO load balance
 		struct run_queue *rq = &mycpu()->rqueue;
 		if(proc->flags & PF_PINCPU){
 			#ifndef ARCH_RISCV64
@@ -50,29 +116,45 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 			rq = &cpus[proc->cpu_affinity].rqueue;
 		}
 		assert(proc->cpu_affinity == myid());
-		//XXX lock
+
+        bool intr_flag;
+        //spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
 		sched_class->enqueue(rq, proc);
+        //spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
+
 	}
 }
 
 static inline void sched_class_dequeue(struct proc_struct *proc)
 {
 	struct run_queue *rq = &mycpu()->rqueue;
+
+    bool intr_flag;
+    spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
 	sched_class->dequeue(rq, proc);
+    spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
 }
 
 static inline struct proc_struct *sched_class_pick_next(void)
 {
 	struct run_queue *rq = &mycpu()->rqueue;
 	
-	return sched_class->pick_next(rq);
+    bool intr_flag;
+    spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
+	struct proc_struct* ans = sched_class->pick_next(rq);
+    spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
+    return ans;
 }
 
 static void sched_class_proc_tick(struct proc_struct *proc)
 {
 	if (proc != idleproc) {
 		struct run_queue *rq = &mycpu()->rqueue;
+	    
+        bool intr_flag;
+        spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
 		sched_class->proc_tick(rq, proc);
+        spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
 	} else {
 		proc->need_resched = 1;
 	}
@@ -89,14 +171,16 @@ void sched_init(void)
 	//list_init(&(__rq[0].rq_link));
 	struct run_queue *rq0 = &cpus[id].rqueue;
 	list_init(&(rq0->rq_link));
+    spinlock_init(&cpus[id].rqueue_lock);
 	rq0->max_time_slice = 8;
 
 	int i;
-	for (i = 0; i < NCPU; i++) {
+	for (i = 0; i < NCPU; i++) {//TODO: use NCPU in riscv only
 		if(i == id)
 			continue;
 		struct run_queue *rqi = &cpus[i].rqueue;
 		list_init(&(rqi->rq_link));
+        spinlock_init(&cpus[i].rqueue_lock);
 		// list_add_before(&(rq0->rq_link), 
 		// 		&(rqi->rq_link));
 		// yzjc: I don't know what you are doing here
@@ -210,6 +294,8 @@ void schedule(void)
 		    && current->pid >= lcpu_count) { // if not an idle proc
 			sched_class_enqueue(current);
 		}
+
+        load_balance();
 
 		next = sched_class_pick_next();
 		if (next != NULL){
