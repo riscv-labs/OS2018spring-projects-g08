@@ -6,6 +6,8 @@ http://os.cs.tsinghua.edu.cn/oscourse/OS2018spring/projects/g08
 
 ### Run:
 
+**NOTICE**: If you want run ucore risc-v 64 in SMP, please checkout to smp branch. (master branch is not the newest, because we are debugging.
+
 1. Configure:
 ```
   make menuconfig ARCH=riscv_64
