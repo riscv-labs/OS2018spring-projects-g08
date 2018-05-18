@@ -71,8 +71,8 @@ struct sfs_disk_entry {
 /* inode for sfs */
 struct sfs_inode {
 	struct sfs_disk_inode *din;	/* on-disk inode */
-	uint32_t ino;		/* inode number */
-	uint32_t flags;		/* inode flags */
+	uintptr_t ino;		/* inode number */
+	uintptr_t flags;		/* inode flags */
 	int dirty;		/* true if inode modified */
 	int reclaim_count;	/* kill inode if it hits zero */
 	semaphore_t sem;	/* semaphore for din */
