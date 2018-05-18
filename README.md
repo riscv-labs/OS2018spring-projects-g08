@@ -14,10 +14,12 @@ or
 ``
   make ARCH=riscv_64 defconfig
 ``
+make sure all numa setting to 1
 
 2. Create file system
 ``
   make sfsimg
+  make sfsimg2
 ``
 
 3. (Optional) create swap file
@@ -33,7 +35,7 @@ If you define "Support for paging of anonymous memory(swap)" in menuconfig, then
 
 5. Run ucore
 ``
-  ./uCore_run
+  ./uCore_run -c -d obj
 ``
 
 ## 学习笔记
