@@ -20,14 +20,6 @@
 #include <spinlock.h>
 extern struct cpu cpus[];
 
-/* we may use lock free list */
-struct __timer_list_t{
-	list_entry_t tl;
-	spinlock_s lock;
-};
-static struct __timer_list_t __timer_list;
-#define timer_list __timer_list.tl
-
 static struct sched_class *sched_class;
 // static DEFINE_PERCPU_NOINIT(struct run_queue, runqueues);
 
@@ -41,9 +33,9 @@ static inline void move_run_queue(int src_cpu_id, int dst_cpu_id, struct proc_st
     int intr_flag;
     sched_class->dequeue(s_rq, proc);
 
-    spin_lock_irqsave(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
+//    spin_lock_irqsave(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
     sched_class->enqueue(d_rq, proc);
-    spin_unlock_irqrestore(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
+//    spin_unlock_irqrestore(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
 
     proc->cpu_affinity = dst_cpu_id;
 }
@@ -55,9 +47,7 @@ static inline int min(int a, int b) {
 
 static inline void load_balance()
 {
-    bool intr_flag[NCPU];
     for (int i = 0; i < NCPU; ++i) {
-        //spin_lock_irqsave(&cpus[i].rqueue_lock, intr_flag[i]);
         spinlock_acquire(&cpus[i].rqueue_lock);
     }
 	#ifdef ARCH_RISCV64
@@ -79,24 +69,20 @@ static inline void load_balance()
     }
     load_sum /= lcpu_count;
     
-    //bool intr_flag;
-    //spin_lock_irqsave(&cpus[max_id].rqueue_lock, intr_flag);
     {
         load_max = sched_class->get_load(&cpus[max_id].rqueue);
         my_load = sched_class->get_load(&cpus[myid()].rqueue);
         int needs = min((int)(load_max - load_sum), (int)(load_sum - my_load));
         needs = min(needs, MAX_MOVE_PROC_NUM);
         if (needs > 3 && myid() != max_id) {
-            kprintf("===========%d %d %d======\n", myid(), max_id, needs);
+            //kprintf("===========%d %d %d======\n", myid(), max_id, needs);
             struct proc_struct* procs_moved[MAX_MOVE_PROC_NUM];//TODO: max proc num in rq
             int num = sched_class->get_proc(&cpus[max_id].rqueue, procs_moved, needs);
             for (int i = 0; i < num; ++i)
                 move_run_queue(max_id, myid(), procs_moved[i]);
         }
     }
-    //spin_unlock_irqrestore(&cpus[max_id].rqueue_lock, intr_flag);
     for (int i = 0; i < NCPU; ++i) {
-        //spin_unlock_irqrestore(&cpus[i].rqueue_lock, intr_flag[i]);
         spinlock_release(&cpus[i].rqueue_lock);
     }
 }
@@ -115,12 +101,14 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 			#endif
 			rq = &cpus[proc->cpu_affinity].rqueue;
 		}
-		assert(proc->cpu_affinity == myid());
+		if (proc->cpu_affinity != myid()) {
+            //kprintf("ERR!:%d %d\n", proc->cpu_affinity, myid());
+        }
+        assert(proc->cpu_affinity == myid());
 
-        bool intr_flag;
-        //spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
+        spinlock_acquire(&mycpu()->rqueue_lock);
 		sched_class->enqueue(rq, proc);
-        //spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
+        spinlock_release(&mycpu()->rqueue_lock);
 
 	}
 }
@@ -128,21 +116,13 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 static inline void sched_class_dequeue(struct proc_struct *proc)
 {
 	struct run_queue *rq = &mycpu()->rqueue;
-
-    bool intr_flag;
-    spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
 	sched_class->dequeue(rq, proc);
-    spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
 }
 
 static inline struct proc_struct *sched_class_pick_next(void)
 {
 	struct run_queue *rq = &mycpu()->rqueue;
-	
-    bool intr_flag;
-    spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
 	struct proc_struct* ans = sched_class->pick_next(rq);
-    spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
     return ans;
 }
 
@@ -151,10 +131,9 @@ static void sched_class_proc_tick(struct proc_struct *proc)
 	if (proc != idleproc) {
 		struct run_queue *rq = &mycpu()->rqueue;
 	    
-        bool intr_flag;
-        spin_lock_irqsave(&mycpu()->rqueue_lock, intr_flag);
+        spinlock_acquire(&mycpu()->rqueue_lock);
 		sched_class->proc_tick(rq, proc);
-        spin_unlock_irqrestore(&mycpu()->rqueue_lock, intr_flag);
+        spinlock_release(&mycpu()->rqueue_lock);
 	} else {
 		proc->need_resched = 1;
 	}
@@ -164,13 +143,12 @@ static void sched_class_proc_tick(struct proc_struct *proc)
 
 void sched_init(void)
 {
-	list_init(&timer_list);
-
 	int id = myid();
 	//rq = __rq;
 	//list_init(&(__rq[0].rq_link));
 	struct run_queue *rq0 = &cpus[id].rqueue;
 	list_init(&(rq0->rq_link));
+    list_init(&(cpus[id].timer_list.tl));
     spinlock_init(&cpus[id].rqueue_lock);
 	rq0->max_time_slice = 8;
 
@@ -180,6 +158,7 @@ void sched_init(void)
 			continue;
 		struct run_queue *rqi = &cpus[i].rqueue;
 		list_init(&(rqi->rq_link));
+        list_init(&(cpus[i].timer_list.tl));
         spinlock_init(&cpus[i].rqueue_lock);
 		// list_add_before(&(rq0->rq_link), 
 		// 		&(rqi->rq_link));
@@ -210,7 +189,9 @@ void stop_proc(struct proc_struct *proc, uint32_t wait)
 	proc->state = PROC_SLEEPING;
 	proc->wait_state = wait;
 	if (!list_empty(&(proc->run_link))) {
+        spinlock_acquire(&mycpu()->rqueue_lock);
 		sched_class_dequeue(proc);
+        spinlock_release(&mycpu()->rqueue_lock);
 	}
 	local_intr_restore(intr_flag);
 }
@@ -297,25 +278,30 @@ void schedule(void)
 
         load_balance();
 
-		next = sched_class_pick_next();
-		if (next != NULL){
-			sched_class_dequeue(next);
-		}
-		else
-			next = idleproc;
-		next->runs++;
+        spinlock_acquire(&mycpu()->rqueue_lock);
+        {
+            next = sched_class_pick_next();
+            if (next != NULL){
+                sched_class_dequeue(next);
+            }
+            else
+                next = idleproc;
+        }
+        spinlock_release(&mycpu()->rqueue_lock);
+		
+        next->runs++;
 		if (next != current)
 			proc_run(next);
 	}
 	local_intr_restore(intr_flag);
 }
 
-static void __add_timer(timer_t * timer)
+static void __add_timer(timer_t * timer, int cpu_id)
 {
 	assert(timer->expires > 0 && timer->proc != NULL);
 	assert(list_empty(&(timer->timer_link)));
-	list_entry_t *le = list_next(&timer_list);
-	while (le != &timer_list) {
+	list_entry_t *le = list_next(&cpus[cpu_id].timer_list.tl);
+	while (le != &cpus[cpu_id].timer_list.tl) {
 		timer_t *next = le2timer(le, timer_link);
 		if (timer->expires < next->expires) {
 			next->expires -= timer->expires;
@@ -330,20 +316,20 @@ static void __add_timer(timer_t * timer)
 void add_timer(timer_t * timer)
 {
 	bool intr_flag;
-	spin_lock_irqsave(&__timer_list.lock, intr_flag);
+	spin_lock_irqsave(&mycpu()->timer_list.lock, intr_flag);
 	{
-		__add_timer(timer);
+		__add_timer(timer, myid());
 	}
-	spin_unlock_irqrestore(&__timer_list.lock, intr_flag);
+	spin_unlock_irqrestore(&mycpu()->timer_list.lock, intr_flag);
 }
 
-static void __del_timer(timer_t * timer)
+static void __del_timer(timer_t * timer, int cpu_id)
 {
 	if (!list_empty(&(timer->timer_link))) {
 		if (timer->expires != 0) {
 			list_entry_t *le =
 				list_next(&(timer->timer_link));
-			if (le != &timer_list) {
+			if (le != &cpus[cpu_id].timer_list.tl) {
 				timer_t *next =
 					le2timer(le, timer_link);
 				next->expires += timer->expires;
@@ -357,20 +343,20 @@ void del_timer(timer_t * timer)
 {
 
 	bool intr_flag;
-	spin_lock_irqsave(&__timer_list.lock, intr_flag);
+	spin_lock_irqsave(&mycpu()->timer_list.lock, intr_flag);
 	{
-		__del_timer(timer);
+		__del_timer(timer, myid());
 	}
-	spin_unlock_irqrestore(&__timer_list.lock, intr_flag);
+	spin_unlock_irqrestore(&mycpu()->timer_list.lock, intr_flag);
 }
 
 void run_timer_list(void)
 {
 	bool intr_flag;
-	spin_lock_irqsave(&__timer_list.lock, intr_flag);
+	spin_lock_irqsave(&mycpu()->timer_list.lock, intr_flag);
 	{
-		list_entry_t *le = list_next(&timer_list);
-		if (le != &timer_list) {
+		list_entry_t *le = list_next(&mycpu()->timer_list.tl);
+		if (le != &mycpu()->timer_list.tl) {
 			timer_t *timer = le2timer(le, timer_link);
 			assert(timer->expires != 0);
 			timer->expires--;
@@ -380,12 +366,12 @@ void run_timer_list(void)
 					struct __ucore_linux_timer *lt =
 					    &(timer->linux_timer);
 
-					spin_unlock_irqrestore(&__timer_list.lock, intr_flag);
+					spin_unlock_irqrestore(&mycpu()->timer_list.lock, intr_flag);
 					if (lt->function)
 						(lt->function) (lt->data);
-					spin_lock_irqsave(&__timer_list.lock, intr_flag);
+					spin_lock_irqsave(&mycpu()->timer_list.lock, intr_flag);
 
-					__del_timer(timer);
+					__del_timer(timer, timer->proc->cpu_affinity);
 					kfree(timer);
 					continue;
 				}
@@ -400,8 +386,8 @@ void run_timer_list(void)
 
 				wakeup_proc(proc);
 
-				__del_timer(timer);
-				if (le == &timer_list) {
+				__del_timer(timer, timer->proc->cpu_affinity);
+				if (le == &mycpu()->timer_list.tl) {
 					break;
 				}
 				timer = le2timer(le, timer_link);
@@ -409,5 +395,5 @@ void run_timer_list(void)
 		}
 		sched_class_proc_tick(current);
 	}
-	spin_unlock_irqrestore(&__timer_list.lock, intr_flag);
+	spin_unlock_irqrestore(&mycpu()->timer_list.lock, intr_flag);
 }

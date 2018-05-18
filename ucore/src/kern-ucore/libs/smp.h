@@ -9,6 +9,12 @@
 
 #define NCPU		UCONFIG_NR_CPUS
 
+/* we may use lock free list */
+struct __timer_list_t{
+	list_entry_t tl;
+	spinlock_s lock;
+};
+
 struct cpu {
   unsigned int id;                    // cpu id
   struct context *scheduler;   // swtch() here to enter scheduler
@@ -24,6 +30,7 @@ struct cpu {
   size_t used_pages;
   list_entry_t page_struct_free_list;
   spinlock_s rqueue_lock;
+  struct __timer_list_t timer_list;
   // and idle process
 };
 
