@@ -122,6 +122,10 @@ menuconfig: $(CONFIG_DIR) $(CONFIG)/mconf $(CONFIG_SCRIPT)
 	@if ! $(CONFIG)/mconf $(CONFIG_CONFIG_IN); then \
 		test -f .config.cmd || rm -f $(CONFIG_SCRIPT); \
 	fi
+	## FIXME: temporary solution
+	@rm -f $(TOPDIR)/src/kern-ucore/module/include/asm $(TOPDIR)/src/kern-ucore/module/include/mach
+	@ln -sf asm-arm $(TOPDIR)/src/kern-ucore/module/include/asm
+	@ln -sf mach-goldfish/include/mach $(TOPDIR)/src/kern-ucore/module/include/mach
 
 kmod:
 	$(MAKE) -f $(TOPDIR)/src/kmod/Makefile -C $(TOPDIR)/src/kmod T_BASE=$(TOPDIR) CC=$(TARGET_CC) LD=$(TARGET_LD) all
