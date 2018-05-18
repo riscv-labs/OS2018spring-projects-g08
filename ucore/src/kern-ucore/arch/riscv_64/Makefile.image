@@ -11,6 +11,9 @@ SEDFLAGS	= s/TEXT_START/$(UCONFIG_KERNEL_BASE)/
 FSIMG		:= ${T_OBJ}/sfs.img
 export DATA_FILE ?= $(FSIMG)
 
+CP_FSIMG	:= ${T_OBJ}/sfs_cp.img
+export CP_DATA_FILE ?= ${CP_FSIMG}
+
 __CMD := case sfs.img in /*) echo 1;; esac
 ifeq ($(shell $(__CMD)), 1)
 RAMDISK_FILE := $(shell echo sfs.img)
@@ -18,6 +21,15 @@ else
 RAMDISK_FILE := $(OBJPATH_ROOT)/$(shell echo sfs.img)
 endif
 RAMDISK_OBJ := $(RAMDISK_FILE).o
+
+__CMD := case sfs_cp.img in /*) echo 1;; esac
+ifeq ($(shell $(__CMD)), 1)
+CPRAMDISK_FILE := $(shell echo sfs_cp.img)
+else
+CPRAMDISK_FILE := $(OBJPATH_ROOT)/$(shell echo sfs_cp.img)
+endif
+CPRAMDISK_OBJ := $(CPRAMDISK_FILE).o
+
 
 ifdef UCONFIG_SWAP
 SWAPIMG		:= ${T_OBJ}/swap.img
@@ -37,9 +49,9 @@ $(KERNEL_IMG): $(KERNEL_ELF)
 	@echo Making $@
 	cd $(TOPDIR)/../riscv-pk && rm -rf build && mkdir build && cd build && ../configure --prefix=$(RISCV) --host=riscv64-unknown-elf --with-payload=$(KERNEL_ELF) --disable-fp-emulation --enable-logo && make && cp bbl $(KERNEL_IMG)
 
-$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(SWAP_OBJ)
+$(KERNEL_ELF): $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(CPRAMDISK_OBJ) $(SWAP_OBJ)
 	@echo Linking uCore
-	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(SWAP_OBJ) -o $@
+	$(Q)$(TARGET_LD) $(TARGET_LDFLAGS) -T $(LINK_FILE) $(KERNEL_BUILTIN) $(RAMDISK_OBJ) $(CPRAMDISK_OBJ) $(SWAP_OBJ) -o $@
 
 $(LINK_FILE): $(LINK_FILE_IN) $(KCONFIG_AUTOCONFIG)
 	@echo "creating linker script"
@@ -52,6 +64,14 @@ $(RAMDISK_OBJ): $(RAMDISK_FILE)
 	@sed "s#DATA_FILE#$(RAMDISK_FILE)#" < $(KTREE)/arch/$(ARCH)/tools/initrd.S.in > $(INITRD_PIGGY_S)
 	$(Q)$(TARGET_CC) -c $(INITRD_PIGGY_S) -o $@
 	$(Q)rm -f $(INITRD_PIGGY_S)
+
+CPINITRD_PIGGY_S:=$(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools/initrd_cp.S
+$(CPRAMDISK_OBJ): $(CPRAMDISK_FILE)
+	@echo "Linking Initrd_cp into kernel, using $(CPRAMDISK_FILE)"
+	@mkdir -p $(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools
+	@sed "s#CP_DATA_FILE#$(CPRAMDISK_FILE)#" < $(KTREE)/arch/$(ARCH)/tools/initrd_cp.S.in > $(CPINITRD_PIGGY_S)
+	$(Q)$(TARGET_CC) -c $(CPINITRD_PIGGY_S) -o $@
+	$(Q)rm -f $(CPINITRD_PIGGY_S)
 
 ifdef UCONFIG_SWAP
 SWAPRD_PIGGY_S:=$(KTREE_OBJ_ROOT)/arch/$(ARCH)/tools/swaprd.S

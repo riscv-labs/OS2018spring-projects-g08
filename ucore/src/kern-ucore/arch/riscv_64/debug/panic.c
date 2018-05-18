@@ -7,6 +7,7 @@
 #include <proc.h>
 #include <smp.h>
 #endif
+#include <mod.h>
 
 static bool is_panic = 0;
 
@@ -39,6 +40,8 @@ panic_dead:
 	}
 }
 
+EXPORT_SYMBOL(__panic);
+
 /* __warn - like panic, but don't */
 void __warn(const char *file, int line, const char *fmt, ...)
 {
@@ -50,7 +53,12 @@ void __warn(const char *file, int line, const char *fmt, ...)
 	va_end(ap);
 }
 
+EXPORT_SYMBOL(__warn);
+
 bool is_kernel_panic(void)
 {
 	return is_panic;
 }
+
+
+EXPORT_SYMBOL(is_kernel_panic);

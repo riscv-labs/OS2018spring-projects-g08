@@ -312,6 +312,12 @@ void pmm_init(void) {
 				 (uintptr_t) PADDR(initrd_begin), PTE_W | PTE_R);
 		kprintf("mapping initrd to 0x%08x\n", DISK_FS_VBASE);
 	}
+    if (CHECK_INITRD_CP_EXIST()) {
+		boot_map_segment(boot_pgdir, DISK2_FS_VBASE,
+				 ROUNDUP(initrd_cp_end - initrd_cp_begin, PGSIZE),
+				 (uintptr_t) PADDR(initrd_cp_begin), PTE_W | PTE_R);
+		kprintf("mapping initrd_cp to 0x%08x\n", DISK2_FS_VBASE);
+	}
 #ifdef UCONFIG_SWAP
     if (CHECK_SWAPRD_EXIST()) {
 		boot_map_segment(boot_pgdir, DISK_SWAP_VBASE,

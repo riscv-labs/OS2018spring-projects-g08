@@ -8,7 +8,7 @@
 
 #define __used __attribute__((__used__))
 #define __weak __attribute__((weak))
-#define noinline __attribute__((noinline))
+#define __noinline __attribute__((noinline))
 //#define __user __attribute__((noderef, address_space(1)))
 #define __user
 

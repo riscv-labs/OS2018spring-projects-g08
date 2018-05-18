@@ -1,6 +1,7 @@
 #include <string.h>
 #include <slab.h>
 #include <arch.h>
+#include <mod.h>
 
 /* *
  * strlen - calculate the length of the string @s, not including
@@ -17,6 +18,8 @@ size_t strlen(const char *s)
 	}
 	return cnt;
 }
+
+EXPORT_SYMBOL(strlen);
 
 /* *
  * strnlen - calculate the length of the string @s, not including
@@ -39,6 +42,9 @@ size_t strnlen(const char *s, size_t len)
 	}
 	return cnt;
 }
+
+EXPORT_SYMBOL(strnlen);
+
 
 /* *
  * strcpy - copies the string pointed by @src into the array pointed by @dst,
@@ -64,6 +70,9 @@ char *strcpy(char *dst, const char *src)
 #endif /* __HAVE_ARCH_STRCPY */
 }
 
+EXPORT_SYMBOL(strcpy);
+
+
 /* *
  * strncpy - copies the first @len characters of @src to @dst. If the end of string @src
  * if found before @len characters have been copied, @dst is padded with '\0' until a
@@ -86,6 +95,9 @@ char *strncpy(char *dst, const char *src, size_t len)
 	return dst;
 }
 
+
+EXPORT_SYMBOL(strncpy);
+
 /* *
  * strcat - appends a copy of the @src string to the @dst string. The terminating null
  * character in @dst is overwritten by the first character of @src, and a new null-character
@@ -98,6 +110,9 @@ char *strcat(char *dst, const char *src)
 {
 	return strcpy(dst + strlen(dst), src);
 }
+
+EXPORT_SYMBOL(strcat);
+
 
 /* *
  * strcmp - compares the string @s1 and @s2
@@ -125,6 +140,9 @@ int strcmp(const char *s1, const char *s2)
 	return (int)((unsigned char)*s1 - (unsigned char)*s2);
 #endif /* __HAVE_ARCH_STRCMP */
 }
+
+EXPORT_SYMBOL(strcmp);
+
 
 /* *
  * strncmp - compares up to @n characters of the string @s1 to those of the string @s2
@@ -183,6 +201,8 @@ char *strfind(const char *s, char c)
 	}
 	return (char *)s;
 }
+
+EXPORT_SYMBOL(strfind);
 
 /* *
  * strtol - converts string to long integer
@@ -286,6 +306,9 @@ void *memset(void *s, char c, size_t n)
 #endif /* __HAVE_ARCH_MEMSET */
 }
 
+EXPORT_SYMBOL(memset);
+
+
 /* *
  * memmove - copies the values of @n bytes from the location pointed by @src to
  * the memory area pointed by @dst. @src and @dst are allowed to overlap.
@@ -316,6 +339,9 @@ void *memmove(void *dst, const void *src, size_t n)
 #endif /* __HAVE_ARCH_MEMMOVE */
 }
 
+EXPORT_SYMBOL(memmove);
+
+
 /* *
  * memcpy - copies the value of @n bytes from the location pointed by @src to
  * the memory area pointed by @dst.
@@ -344,6 +370,8 @@ void *memcpy(void *dst, const void *src, size_t n)
 #endif /* __HAVE_ARCH_MEMCPY */
 }
 
+EXPORT_SYMBOL(memcpy);
+
 /* *
  * memcmp - compares two blocks of memory
  * @v1:     pointer to block of memory
@@ -370,6 +398,8 @@ int memcmp(const void *v1, const void *v2, size_t n)
 	}
 	return 0;
 }
+
+EXPORT_SYMBOL(memcmp);
 
 /* *
  * stricmp - compares the string @s1 and @s2 case insensitive
