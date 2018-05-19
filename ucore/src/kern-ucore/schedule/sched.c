@@ -101,9 +101,6 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
 			#endif
 			rq = &cpus[proc->cpu_affinity].rqueue;
 		}
-		if (proc->cpu_affinity != myid()) {
-            //kprintf("ERR!:%d %d\n", proc->cpu_affinity, myid());
-        }
         assert(proc->cpu_affinity == myid());
 
         spinlock_acquire(&mycpu()->rqueue_lock);
@@ -211,6 +208,7 @@ void wakeup_proc(struct proc_struct *proc)
 				#else
 				assert(proc->pid >= sysconf.lcpu_count);
 				#endif
+				proc->cpu_affinity = myid();
 				sched_class_enqueue(proc);
 			}
 		} else {
@@ -231,6 +229,7 @@ int try_to_wakeup(struct proc_struct *proc)
 			proc->state = PROC_RUNNABLE;
 			proc->wait_state = 0;
 			if (proc != current) {
+				proc->cpu_affinity = myid();
 				sched_class_enqueue(proc);
 			}
 			ret = 1;
@@ -244,6 +243,7 @@ int try_to_wakeup(struct proc_struct *proc)
 				next->state = PROC_RUNNABLE;
 				next->wait_state = 0;
 				if (next != current) {
+					next->cpu_affinity = myid();
 					sched_class_enqueue(next);
 				}
 			}
@@ -273,6 +273,7 @@ void schedule(void)
 		current->need_resched = 0;
 		if (current->state == PROC_RUNNABLE
 		    && current->pid >= lcpu_count) { // if not an idle proc
+			current->cpu_affinity = myid();
 			sched_class_enqueue(current);
 		}
 

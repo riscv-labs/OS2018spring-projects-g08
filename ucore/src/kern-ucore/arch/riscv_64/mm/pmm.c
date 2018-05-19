@@ -27,6 +27,7 @@ static DEFINE_PERCPU_NOINIT(size_t, used_pages);
 DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
 #endif
 
+extern struct cpu cpus[];
 
 // virtual address of physical page array
 struct Page *pages;
@@ -44,6 +45,7 @@ uintptr_t boot_cr3;
 
 // physical memory management
 const struct pmm_manager *pmm_manager;
+spinlock_s pmm_lock;
 
 /* *
  * The page directory entry corresponding to the virtual address range
@@ -67,6 +69,7 @@ static void init_pmm_manager(void) {
     kprintf("memory management: %s\n", pmm_manager->name);
 
     pmm_manager->init();
+    spinlock_init(&pmm_lock);
 }
 
 // init_memmap - call pmm->init_memmap to build Page struct for free memory
@@ -128,9 +131,11 @@ struct Page *alloc_pages(size_t n) {
 try_again:
 #endif
 	local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
 	{
 		page = pmm_manager->alloc_pages(n);
 	}
+    spinlock_release(&pmm_lock);
 	local_intr_restore(intr_flag);
 #ifdef UCONFIG_SWAP
 	if (page == NULL && try_free_pages(n)) {
@@ -151,9 +156,11 @@ try_again:
 void free_pages(struct Page *base, size_t n) {
     bool intr_flag;
     local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
     {
         pmm_manager->free_pages(base, n);
     }
+    spinlock_release(&pmm_lock);
     local_intr_restore(intr_flag);
 #ifndef ARCH_RISCV64
     get_cpu_var(used_pages) -= n;
@@ -167,7 +174,11 @@ size_t nr_used_pages(void)
 #ifndef ARCH_RISCV64
 	return get_cpu_var(used_pages);
 #else
-    return mycpu()->used_pages;
+    int i;
+    size_t r = 0;
+    for(i = 0; i < NCPU; i ++)
+        r += cpus[i].used_pages;
+    return r;
 #endif
 }
 
@@ -177,9 +188,11 @@ size_t nr_free_pages(void) {
     size_t ret;
     bool intr_flag;
     local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
     {
         ret = pmm_manager->nr_free_pages();
     }
+    spinlock_release(&pmm_lock);
     local_intr_restore(intr_flag);
     return ret;
 }

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <buddy_pmm.h>
 #include <stdio.h>
+#include <spinlock.h>
 
 // {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024}
 // from 2^0 ~ 2^10
@@ -20,7 +21,7 @@ struct Zone {
 NULL}};
 
 static inline ppn_t page2idx(struct Page *page);
-
+static void buddy_free_pages(struct Page *base, size_t n);
 //buddy_init - init the free_list(0 ~ MAX_ORDER) & reset nr_free(0 ~ MAX_ORDER)
 static void buddy_init(void)
 {
@@ -108,7 +109,7 @@ static struct Page *buddy_alloc_pages(size_t n)
 	size_t order = getorder(n), order_size = (1 << order);
 	struct Page *page = buddy_alloc_pages_sub(order);
 	if (page != NULL && n != order_size) {
-		free_pages(page + n, order_size - n);
+		buddy_free_pages(page + n, order_size - n);
 	}
 	
 	return page;
