@@ -4,9 +4,7 @@
 #include <kio.h>
 #include <stdio.h>
 #include <arch.h>
-#ifdef ARCH_RISCV64
 #include <smp.h>
-#endif
 
 volatile size_t ticks;
 
@@ -42,12 +40,8 @@ void clock_init(void) {
     set_csr(sie, MIP_STIP);
 
     // initialize time counter 'ticks' to zero
-    #ifdef ARCH_RISCV64
     if(myid() == 0)
         ticks = 0;
-    #else
-    ticks = 0;
-    #endif
 
     kprintf("++ setup timer interrupts\n");
 }

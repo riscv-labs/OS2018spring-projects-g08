@@ -68,16 +68,13 @@ int kern_init(uintptr_t hartid, uintptr_t good) {
     const char *message = "(THU.CST) os is loading ...\n";
     kprintf("%s\n\n", message);
 
-    #ifdef ARCH_RISCV64
     smp_init();
-    #endif
     
     print_kerninfo();
 
-    #ifndef ARCH_RISCV64
     /* Only to initialize lcpu_count. */
-	mp_init();
-    #endif
+    /* We don't support NUMA. */
+	// mp_init();
 
 
 	size_t nr_used_pages_store = nr_used_pages();
@@ -85,9 +82,9 @@ int kern_init(uintptr_t hartid, uintptr_t good) {
     assert(myid() == hartid);
 	//debug_init();		// init debug registers
     pmm_init();  // init physical memory management
-    #ifndef ARCH_RISCV64
-    pmm_init_ap();
-    #endif
+    
+    /* We don't support NUMA. */
+    // pmm_init_ap();
 
 
 
