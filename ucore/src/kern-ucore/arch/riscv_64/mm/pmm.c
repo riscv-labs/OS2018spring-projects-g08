@@ -191,7 +191,7 @@ static void page_init(void) {
     va_pa_offset = KERNBASE - (uint64_t)kern_entry;
 
     uint64_t mem_begin = (uint64_t)kern_entry;
-    uint64_t mem_end = (128 << 20) + DRAM_BASE; // 128MB memory on qemu
+    uint64_t mem_end = (256 << 20) + DRAM_BASE; // 256MB memory on qemu
     uint64_t mem_size = mem_end - mem_begin;
 
     kprintf("physical memory map:\n");
