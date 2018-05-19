@@ -46,6 +46,13 @@ If you define "Support for paging of anonymous memory(swap)" in menuconfig, then
   ./uCore_test -d obj
 ```
 
+**Note:** Support for Darwin (macOS) has been added to the test script. Note however, that macOS by default ships the BSD `sed`, which is not supported by the test script. To run the test script, you need to install the GNU `sed`. Instructions:
+
+```
+  brew install gnu-sed
+  SED=gsed ./uCore_test -d obj
+```
+
 ## 学习笔记
 
  * LKM: https://github.com/riscv-labs/OS2018spring-projects-g08/blob/master/docs/lkm.md
