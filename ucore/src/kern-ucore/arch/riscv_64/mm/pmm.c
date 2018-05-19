@@ -12,20 +12,15 @@
 #include <arch.h>
 #include <slab.h>
 #include <proc.h>
-#ifdef ARCH_RISCV64
 #include <smp.h>
-#else
-#include <mp.h>
-#endif
 #include <vmm.h>
 #include <swap.h>
 #include <ide.h>
 #include <ramdisk.h>
 
-#ifndef ARCH_RISCV64
-static DEFINE_PERCPU_NOINIT(size_t, used_pages);
-DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
-#endif
+/* We don't support NUMA. */
+// static DEFINE_PERCPU_NOINIT(size_t, used_pages);
+// DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
 
 
 // virtual address of physical page array
@@ -138,11 +133,10 @@ try_again:
 	}
 #endif
 
-#ifndef ARCH_RISCV64
-	get_cpu_var(used_pages) += n;
-#else
+    /* We don't support NUMA. */
+	// get_cpu_var(used_pages) += n;
+
     mycpu()->used_pages += n;    
-#endif
 
 	return page;
 }
@@ -155,20 +149,18 @@ void free_pages(struct Page *base, size_t n) {
         pmm_manager->free_pages(base, n);
     }
     local_intr_restore(intr_flag);
-#ifndef ARCH_RISCV64
-    get_cpu_var(used_pages) -= n;
-#else
-    return mycpu()->used_pages -= n;    
-#endif
+
+    /* We don't support NUMA. */
+    // get_cpu_var(used_pages) -= n;
+
+    mycpu()->used_pages -= n;    
 }
 
 size_t nr_used_pages(void)
 {
-#ifndef ARCH_RISCV64
-	return get_cpu_var(used_pages);
-#else
+    /* We don't support NUMA. */
+	// return get_cpu_var(used_pages);
     return mycpu()->used_pages;
-#endif
 }
 
 // nr_free_pages - call pmm->nr_free_pages to get the size (nr*PAGESIZE)
@@ -344,18 +336,16 @@ void pmm_init(void) {
 
 void pmm_init_ap(void)
 {
-    #ifdef ARCH_RISCV64
 	list_entry_t *page_struct_free_list =
 	    &mycpu()->page_struct_free_list;
 	list_init(page_struct_free_list);
     
 	mycpu()->used_pages = 0;
-    #else
-    list_entry_t *page_struct_free_list =
-	    get_cpu_ptr(page_struct_free_list);
-	list_init(page_struct_free_list);
-	get_cpu_var(used_pages) = 0;
-    #endif
+    /* We don't support NUMA. */
+    // list_entry_t *page_struct_free_list =
+	//     get_cpu_ptr(page_struct_free_list);
+	// list_init(page_struct_free_list);
+	// get_cpu_var(used_pages) = 0;
 }
 
 // invalidate a TLB entry, but only if the page tables being

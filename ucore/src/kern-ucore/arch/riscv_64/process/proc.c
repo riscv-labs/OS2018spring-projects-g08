@@ -79,9 +79,8 @@ int kernel_thread(int (*fn) (void *), void *arg, uint32_t clone_flags)
 void forkret(void)
 {
 	if (!trap_in_kernel(current->tf)) {
-		#ifndef ARCH_RISCV64
-		kern_leave();
-		#endif
+		/* We don't support NUMA. */
+		// kern_leave();
 	}
 	forkrets(current->tf);
 }
