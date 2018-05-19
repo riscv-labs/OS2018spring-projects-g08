@@ -6,7 +6,7 @@ stderr=/dev/stderr
 BUILD_DIR=${BUILD_DIR:-obj}
 RECORD_MODE=${RECORD_MODE:-}
 TEST_CASE=
-TIMEOUT=10
+TIMEOUT=1000
 WAIT_TIMEOUT=0
 MAX_PROCS=`grep processor /proc/cpuinfo | wc -l`
 

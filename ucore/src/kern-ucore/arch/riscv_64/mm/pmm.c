@@ -511,51 +511,51 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
 
 // print_pgdir - print the PDT&PT
 void print_pgdir(void) {
-    kprintf("-------------------- BEGIN --------------------\n");
-    size_t left, right = 0, perm;
-    while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
-                                     &right)) != 0) {
-        kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
-                right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
+    // kprintf("-------------------- BEGIN --------------------\n");
+    // size_t left, right = 0, perm;
+    // while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
+    //                                  &right)) != 0) {
+    //     kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
+    //             right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
 
-        if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
-            continue;
-        }
+    //     if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
+    //         continue;
+    //     }
 
-        size_t l, r = left * NPTEENTRY;
-        uintptr_t i;
-        size_t old_l, old_r, old_perm = 0;
-        for (i = left; i < right; i++) {
-            while (1) {
-                perm = get_pgtable_items(
-                    i * NPTEENTRY, (i + 1) * NPTEENTRY, r,
-                    (uintptr_t *)(KADDR((uintptr_t)PDE_ADDR(vpd[i]))) -
-                        i * NPTEENTRY,
-                    &l, &r);
+    //     size_t l, r = left * NPTEENTRY;
+    //     uintptr_t i;
+    //     size_t old_l, old_r, old_perm = 0;
+    //     for (i = left; i < right; i++) {
+    //         while (1) {
+    //             perm = get_pgtable_items(
+    //                 i * NPTEENTRY, (i + 1) * NPTEENTRY, r,
+    //                 (uintptr_t *)(KADDR((uintptr_t)PDE_ADDR(vpd[i]))) -
+    //                     i * NPTEENTRY,
+    //                 &l, &r);
 
-                if (perm == 0) {
-                    break;
-                }
+    //             if (perm == 0) {
+    //                 break;
+    //             }
 
-                if (old_perm != perm) {
-                    if (old_perm != 0) {
-                        kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
-                                old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
-                                (old_r - old_l) * PGSIZE, perm2str(old_perm));
-                    }
-                    old_l = l;
-                    old_r = r;
-                    old_perm = perm;
-                } else {
-                    old_r = r;
-                }
-            }
-        }
-        if (old_perm != 0) {
-            kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
-                    old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
-                    perm2str(old_perm));
-        }
-    }
-    kprintf("--------------------- END ---------------------\n");
+    //             if (old_perm != perm) {
+    //                 if (old_perm != 0) {
+    //                     kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
+    //                             old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
+    //                             (old_r - old_l) * PGSIZE, perm2str(old_perm));
+    //                 }
+    //                 old_l = l;
+    //                 old_r = r;
+    //                 old_perm = perm;
+    //             } else {
+    //                 old_r = r;
+    //             }
+    //         }
+    //     }
+    //     if (old_perm != 0) {
+    //         kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
+    //                 old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
+    //                 perm2str(old_perm));
+    //     }
+    // }
+    // kprintf("--------------------- END ---------------------\n");
 }
