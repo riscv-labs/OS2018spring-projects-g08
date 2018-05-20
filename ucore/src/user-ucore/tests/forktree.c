@@ -4,6 +4,8 @@
 
 #define DEPTH 4
 
+static sem_t print_lock, sprint_lock;
+
 void forktree(const char *cur);
 
 void forkchild(const char *cur, char branch)
@@ -23,7 +25,9 @@ void forkchild(const char *cur, char branch)
 
 void forktree(const char *cur)
 {
+	sem_wait(print_lock);
 	cprintf("%04x: I am '%s'\n", getpid(), cur);
+	sem_post(print_lock);
 
 	forkchild(cur, '0');
 	forkchild(cur, '1');
@@ -31,6 +35,9 @@ void forktree(const char *cur)
 
 int main(void)
 {
+	print_lock = sem_init(1);
+	sprint_lock = sem_init(1);
+
 	forktree("");
 	return 0;
 }
