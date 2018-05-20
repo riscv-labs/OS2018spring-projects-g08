@@ -74,3 +74,4 @@ dkms.conf
 .vscode
 .DS_Store
 ucore/test_log_up.txt
+ucore/myenv

@@ -37,8 +37,6 @@ static inline int __ucore_is_linux_timer(timer_t * t)
 	return (t->linux_timer.linux_timer != NULL);
 }
 
-struct run_queue;
-
 // The introduction of scheduling classes is borrrowed from Linux, and makes the 
 // core scheduler quite extensible. These classes (the scheduler modules) encapsulate 
 // the scheduling policies. 

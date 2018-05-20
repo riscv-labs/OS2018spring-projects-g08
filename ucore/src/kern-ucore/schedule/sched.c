@@ -20,6 +20,7 @@
 #include <spinlock.h>
 extern struct cpu cpus[];
 
+static spinlock_s stupid_lock;
 static struct sched_class *sched_class;
 // static DEFINE_PERCPU_NOINIT(struct run_queue, runqueues);
 
@@ -30,14 +31,10 @@ static const int MAX_MOVE_PROC_NUM = 100;
 static inline void move_run_queue(int src_cpu_id, int dst_cpu_id, struct proc_struct *proc) {
     struct run_queue *s_rq = &cpus[src_cpu_id].rqueue;
     struct run_queue *d_rq = &cpus[dst_cpu_id].rqueue;
-    int intr_flag;
     sched_class->dequeue(s_rq, proc);
 
-//    spin_lock_irqsave(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
+    proc->cpu_affinity = dst_cpu_id; 
     sched_class->enqueue(d_rq, proc);
-//    spin_unlock_irqrestore(&cpus[dst_cpu_id].rqueue_lock, intr_flag);
-
-    proc->cpu_affinity = dst_cpu_id;
 }
 
 static inline int min(int a, int b) {
@@ -125,6 +122,7 @@ static inline struct proc_struct *sched_class_pick_next(void)
 
 static void sched_class_proc_tick(struct proc_struct *proc)
 {
+	spinlock_acquire(&stupid_lock);
 	if (proc != idleproc) {
 		struct run_queue *rq = &mycpu()->rqueue;
 	    
@@ -134,6 +132,7 @@ static void sched_class_proc_tick(struct proc_struct *proc)
 	} else {
 		proc->need_resched = 1;
 	}
+	spinlock_release(&stupid_lock);
 }
 
 //static struct run_queue __rq[NCPU];
@@ -183,13 +182,15 @@ void stop_proc(struct proc_struct *proc, uint32_t wait)
 {
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&stupid_lock);
 	proc->state = PROC_SLEEPING;
 	proc->wait_state = wait;
+	spinlock_acquire(&mycpu()->rqueue_lock);
 	if (!list_empty(&(proc->run_link))) {
-        spinlock_acquire(&mycpu()->rqueue_lock);
 		sched_class_dequeue(proc);
-        spinlock_release(&mycpu()->rqueue_lock);
 	}
+	spinlock_release(&mycpu()->rqueue_lock);
+	spinlock_acquire(&stupid_lock);
 	local_intr_restore(intr_flag);
 }
 
@@ -198,8 +199,10 @@ void wakeup_proc(struct proc_struct *proc)
 	assert(proc->state != PROC_ZOMBIE);
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&stupid_lock);
 	{
 		if (proc->state != PROC_RUNNABLE) {
+			// kprintf("W1 %d\n", proc->pid);
 			proc->state = PROC_RUNNABLE;
 			proc->wait_state = 0;
 			if (proc != current) {
@@ -215,6 +218,7 @@ void wakeup_proc(struct proc_struct *proc)
 			warn("wakeup runnable process.\n");
 		}
 	}
+	spinlock_release(&stupid_lock);
 	local_intr_restore(intr_flag);
 }
 
@@ -224,6 +228,7 @@ int try_to_wakeup(struct proc_struct *proc)
 	int ret;
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&stupid_lock);
 	{
 		if (proc->state != PROC_RUNNABLE) {
 			proc->state = PROC_RUNNABLE;
@@ -249,6 +254,7 @@ int try_to_wakeup(struct proc_struct *proc)
 			}
 		}
 	}
+	spinlock_release(&stupid_lock);
 	local_intr_restore(intr_flag);
 	return ret;
 }
@@ -263,6 +269,7 @@ void schedule(void)
 	struct proc_struct *next;
 
 	local_intr_save(intr_flag);
+	spinlock_acquire(&stupid_lock);
 
 	#ifdef ARCH_RISCV64
 	int lcpu_count = NCPU;
@@ -291,6 +298,7 @@ void schedule(void)
         spinlock_release(&mycpu()->rqueue_lock);
 		
         next->runs++;
+		spinlock_release(&stupid_lock);
 		if (next != current)
 			proc_run(next);
 	}
