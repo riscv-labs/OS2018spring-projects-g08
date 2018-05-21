@@ -5,8 +5,10 @@
 #include <fs.h>
 #include <pipe.h>
 #include <sfs.h>
+#include <sfatfs.h>
 #include <fatfs/ffs.h>
 #include <yaffs2_direct/yaffs_vfs.h>
+
 
 struct inode;			// abstract structure for an on-disk file (inode.h)
 struct device;			// abstract structure for a device (dev.h)
@@ -39,6 +41,7 @@ struct fs {
 	union {
 		struct pipe_fs __pipe_info;
 		struct sfs_fs __sfs_info;
+		struct sfatfs_fs __sfatfs_info;
 #ifdef UCONFIG_HAVE_YAFFS2
 		struct yaffs2_fs __yaffs2_info;
 #endif
@@ -48,7 +51,8 @@ struct fs {
 	} fs_info;
 	enum {
 		fs_type_pipe_info = 0x5678,
-		fs_type_sfs_info,
+		fs_type_sfs_info = 0x1,
+		fs_type_sfatfs_info = 0x2
 #ifdef UCONFIG_HAVE_YAFFS2
 		fs_type_yaffs2_info,
 #endif

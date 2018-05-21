@@ -724,7 +724,7 @@ static int simplify_symbols(struct secthdr *sechdrs,
 
 static const char vermagic[] = "";
 
-static noinline struct module *load_module(void __user * umod,
+static __noinline struct module *load_module(void __user * umod,
 					   unsigned long len,
 					   const char __user * uargs)
 {

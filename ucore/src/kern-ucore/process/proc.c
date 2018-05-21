@@ -21,9 +21,11 @@
 #include <mbox.h>
 #include <kio.h>
 #include <stdio.h>
-#include <mp.h>
+#include <smp.h>
 #include <resource.h>
+#ifndef ARCH_RISCV64
 #include <sysconf.h>
+#endif
 #include <refcache.h>
 #include <spinlock.h>
 
@@ -150,7 +152,7 @@ static int get_pid(void)
 	list_entry_t *list = &proc_list, *le;
 	static int next_safe = MAX_PID, last_pid = MAX_PID;
 	if (++last_pid >= MAX_PID) {
-		last_pid = sysconf.lcpu_count;
+		last_pid = NCPU;
 		goto inside;
 	}
 	if (last_pid >= next_safe) {
@@ -195,6 +197,8 @@ void proc_run(struct proc_struct *proc)
 			// for tls switch
 			tls_switch(next);
 #endif //UCONFIG_BIONIC_LIBC
+
+
 			switch_to(&(prev->context), &(next->context));
 		}
 		local_intr_restore(intr_flag);
@@ -216,15 +220,19 @@ static void unhash_proc(struct proc_struct *proc)
 // find_proc - find proc frome proc hash_list according to pid
 struct proc_struct *find_proc(int pid)
 {
+	int intr_flag;
+	spin_lock_irqsave(&proc_lock, intr_flag);
 	if (0 < pid && pid < MAX_PID) {
 		list_entry_t *list = hash_list + pid_hashfn(pid), *le = list;
 		while ((le = list_next(le)) != list) {
 			struct proc_struct *proc = le2proc(le, hash_link);
 			if (proc->pid == pid) {
+				spin_unlock_irqrestore(&proc_lock, intr_flag);
 				return proc;
 			}
 		}
 	}
+	spin_unlock_irqrestore(&proc_lock, intr_flag);
 	return NULL;
 }
 
@@ -232,6 +240,7 @@ struct proc_struct *find_proc(int pid)
 static int setup_kstack(struct proc_struct *proc)
 {
 	struct Page *page = alloc_pages(KSTACKPAGE);
+	
 	if (page != NULL) {
 		proc->kstack = (uintptr_t) page2kva(page);
 		return 0;
@@ -586,7 +595,6 @@ int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
 	assert(current->time_slice >= 0);
 	proc->time_slice = current->time_slice / 2;
 	current->time_slice -= proc->time_slice;
-
 	if (setup_kstack(proc) != 0) {
 		goto bad_fork_cleanup_proc;
 	}
@@ -1217,7 +1225,7 @@ int do_execve(const char *filename, const char **argv, const char **envp)
 	}
 #endif
 	snprintf(local_name, sizeof(local_name), "<null> %d", current->pid);
-
+	kprintf("Process %s = %s\n", filename, local_name);
 	int argc = 0, envc = 0;
 	if ((ret = copy_kargv(mm, kargv, argv, EXEC_MAX_ARG_NUM, &argc)) != 0) {
 		unlock_mm(mm);
@@ -1979,10 +1987,11 @@ static int init_main(void *arg)
 	set_proc_name(kswapd, "kswapd");
 #else
 	kprintf("init_main:: swapping is disabled.\n");
-#endif
 	
+#endif
 	int ret;
 	char root[] = "disk0:";
+	
 	if ((ret = vfs_set_bootfs(root)) != 0) {
 		panic("set boot fs failed: %e.\n", ret);
 	}
@@ -1993,6 +2002,7 @@ static int init_main(void *arg)
 	unsigned int nr_process_store = nr_process;
 
 	pid = ucore_kernel_thread(user_main, NULL, 0);
+
 	if (pid <= 0) {
 		panic("create user_main failed.\n");
 	}
@@ -2023,15 +2033,16 @@ static int init_main(void *arg)
 	       && initproc->optr == NULL);
 	assert(kswapd->cptr == NULL && kswapd->yptr == NULL
 	       && kswapd->optr == NULL);
-	assert(nr_process == 2 + sysconf.lcpu_count);
+	assert(nr_process == 2 + NCPU);
 #else
-	assert(nr_process == 1 + sysconf.lcpu_count);
+	assert(nr_process == 1 + NCPU);
 #endif
 	assert(nr_used_pages_store == nr_used_pages());
 	assert(slab_allocated_store == slab_allocated());
 	kprintf("init check memory pass.\n");
 	return 0;
 }
+
 
 // proc_init - set up the first kernel thread idleproc "idle" by itself and 
 //           - create the second kernel thread init_main
@@ -2073,6 +2084,9 @@ void proc_init(void)
 	idleproc = idle;
 	current = idle;
 
+	set_proc_cpu_affinity(idle, cpuid);
+	set_proc_cpu_affinity(current, cpuid);
+
 	int pid = ucore_kernel_thread(init_main, NULL, 0);
 	if (pid <= 0) {
 		panic("create init_main failed.\n");
@@ -2081,9 +2095,11 @@ void proc_init(void)
 	initproc = find_proc(pid);
 	set_proc_name(initproc, "kinit");
 
+
 	assert(idleproc != NULL && idleproc->pid == cpuid);
-	assert(initproc != NULL && initproc->pid == sysconf.lcpu_count);
+	assert(initproc != NULL && initproc->pid == NCPU);
 }
+
 
 void proc_init_ap(void)
 {
@@ -2112,9 +2128,13 @@ void proc_init_ap(void)
 	set_proc_name(idle, namebuf);
 	nr_process++;
 
+	set_proc_cpu_affinity(idle, cpuid);
+
 	idleproc = idle;
 	current = idle;
-#if 1
+
+	
+#if 0
 	int pid;
 	char proc_name[32];
 	if((pid = ucore_kernel_thread(krefcache_cleaner, NULL, 0)) <= 0){
@@ -2126,7 +2146,6 @@ void proc_init_ap(void)
 	set_proc_cpu_affinity(cleaner, myid());
 	nr_process++;
 #endif
-
 	assert(idleproc != NULL && idleproc->pid == cpuid);
 }
 

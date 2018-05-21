@@ -3,6 +3,7 @@
 #include <iobuf.h>
 #include <error.h>
 #include <assert.h>
+#include <mod.h>
 
 struct iobuf *iobuf_init(struct iobuf *iob, void *base, size_t len,
 			 off_t offset)
@@ -12,6 +13,8 @@ struct iobuf *iobuf_init(struct iobuf *iob, void *base, size_t len,
 	iob->io_len = iob->io_resid = len;
 	return iob;
 }
+
+EXPORT_SYMBOL(iobuf_init);
 
 int
 iobuf_move(struct iobuf *iob, void *data, size_t len, bool m2b,
@@ -36,6 +39,8 @@ iobuf_move(struct iobuf *iob, void *data, size_t len, bool m2b,
 	return (len == 0) ? 0 : -E_NO_MEM;
 }
 
+EXPORT_SYMBOL(iobuf_move);
+
 int iobuf_move_zeros(struct iobuf *iob, size_t len, size_t * copiedp)
 {
 	size_t alen;
@@ -52,8 +57,12 @@ int iobuf_move_zeros(struct iobuf *iob, size_t len, size_t * copiedp)
 	return (len == 0) ? 0 : -E_NO_MEM;
 }
 
+EXPORT_SYMBOL(iobuf_move_zeros);
+
 void iobuf_skip(struct iobuf *iob, size_t n)
 {
 	assert(iob->io_resid >= n);
 	iob->io_base += n, iob->io_offset += n, iob->io_resid -= n;
 }
+
+EXPORT_SYMBOL(iobuf_skip);

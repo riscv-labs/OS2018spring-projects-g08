@@ -6,6 +6,7 @@
 #include <inode.h>
 #include <sem.h>
 #include <error.h>
+#include <mod.h>
 
 static semaphore_t bootfs_sem;
 static struct inode *bootfs_node = NULL;
@@ -16,10 +17,24 @@ struct fs *__alloc_fs(int type)
 {
 	struct fs *fs;
 	if ((fs = kmalloc(sizeof(struct fs))) != NULL) {
+		// kprintf("Location of fs: %016x\n", fs);
+		// kprintf("Location of type: %016x\n", &(fs->fs_type));
+   		// kprintf("SIZE of it %d\n", sizeof(fs->fs_info));
+		
+		// kprintf("Location of the stack: %016x\n", &fs);
+		// kprintf("LL %x %x %x %x %x %x\n", &fs->fs_info.__pipe_info, &fs->fs_info.__sfs_info,
+        // 	&fs->fs_info.__sfatfs_info, &fs->fs_info.__sfatfs_info.sfatfs_buffer,
+        //     &fs->fs_info.__sfatfs_info.fat, &fs->fs_info.__sfatfs_info.mutex_sem);
+		// kprintf("SZ %d %d %d %d %d %d %d %d %d %d %d %d\n", sizeof(struct pipe_fs), sizeof(struct sfs_fs),
+       	// 	sizeof(struct sfatfs_fs), sizeof(struct sfatfs_super), sizeof(struct device),
+		// 	   sizeof(struct sfatfs_disk_inode), sizeof(semaphore_t), sizeof(atomic_t), sizeof(struct spinlock_s), 
+		// 	   sizeof(wait_queue_t), sizeof(int), sizeof(bool));
 		fs->fs_type = type;
 	}
 	return fs;
 }
+
+EXPORT_SYMBOL(__alloc_fs);
 
 void vfs_init(void)
 {
@@ -78,6 +93,7 @@ int vfs_set_bootfs(char *fsname)
 			return ret;
 		}
 	}
+	
 	change_bootfs(node);
 	return 0;
 }
@@ -220,3 +236,6 @@ int do_umount(const char *devname)
 {
 	return vfs_unmount(devname);
 }
+
+EXPORT_SYMBOL(unregister_filesystem);
+EXPORT_SYMBOL(register_filesystem);

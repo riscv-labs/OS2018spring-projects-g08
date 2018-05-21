@@ -8,7 +8,7 @@
 
 typedef struct semaphore {
 	int value;
-	bool valid;
+	int valid;
 	atomic_t count;
 	wait_queue_t wait_queue;
 	spinlock_s lock;

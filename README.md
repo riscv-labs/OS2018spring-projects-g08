@@ -6,35 +6,52 @@ http://os.cs.tsinghua.edu.cn/oscourse/OS2018spring/projects/g08
 
 ### Run:
 
+**NOTICE**: If you want run ucore risc-v 64 in SMP, please checkout to smp branch. (master branch is not the newest, because we are debugging.
+
 1. Configure:
-``
+```
   make menuconfig ARCH=riscv_64
-``
+```
 or
-``
+```
   make ARCH=riscv_64 defconfig
-``
+```
+We temporarily use NUMA settings in menuconfig to set the SMP config. (We can't enable NUMA in risc-v.) If you want to enable SMP, make sure the number in NUMA settings is N (default is 1), which means the number of processors.
 
 2. Create file system
-``
+```
   make sfsimg
-``
+  make sfsimg2
+```
+Here we use sfsimg2 for SFAT file system, which is an example to prove the correctness of our LKM in risc-v.
 
 3. (Optional) create swap file
 If you define "Support for paging of anonymous memory(swap)" in menuconfig, then run:
-``
+```
   make swapimg
-``
+```
 
 4. Create kernel
-``
+```
   make
-``
+```
 
 5. Run ucore
-``
-  ./uCore_run
-``
+```
+  ./uCore_run -c -d obj
+```
+
+6. (Optional) Test ucore
+```
+  ./uCore_test -d obj
+```
+
+**Note:** Support for Darwin (macOS) has been added to the test script. Note however, that macOS by default ships the BSD `sed`, which is not supported by the test script. To run the test script, you need to install the GNU `sed`. Instructions:
+
+```
+  brew install gnu-sed
+  SED=gsed ./uCore_test -d obj
+```
 
 ## 学习笔记
 

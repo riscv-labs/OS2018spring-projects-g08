@@ -53,6 +53,8 @@
 #define DISK_FS_VBASE       KERNTOP
 #define DISK_FS_SIZE        0x0000004000000000
 #define DISK_SWAP_VBASE     DISK_FS_VBASE + DISK_FS_SIZE
+
+#define DISK2_FS_VBASE       DISK_SWAP_VBASE 
 /* *
  * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains
  * a pointer to the page directory itself, thereby turning the PD into a page

@@ -20,6 +20,10 @@ static void MLFQ_init(struct run_queue *rq)
 
 static void MLFQ_enqueue(struct run_queue *rq, struct proc_struct *proc)
 {
+	// FIXME: only a quick fix to enhance the stability
+	// it means something goes wrong elsewhere
+	if(!list_empty(&proc->run_link))
+		return;
 	assert(list_empty(&(proc->run_link)));
 	struct run_queue *nrq = rq;
 	if (proc->rq != NULL && proc->time_slice == 0) {
@@ -55,6 +59,16 @@ static void MLFQ_proc_tick(struct run_queue *rq, struct proc_struct *proc)
 	sched_class->proc_tick(proc->rq, proc);
 }
 
+//TODO: use MLFQ
+static double MLFQ_get_load (struct run_queue * rq) {
+    return sched_class->get_load(rq);
+}
+
+//TODO: use MLFQ
+static int MLFQ_get_proc(struct run_queue* rq, struct proc_struct* procs_moved[], int needs) {
+    return sched_class->get_proc(rq, procs_moved, needs);
+}
+
 struct sched_class MLFQ_sched_class = {
 	.name = "MLFQ_scheduler",
 	.init = MLFQ_init,
@@ -62,4 +76,6 @@ struct sched_class MLFQ_sched_class = {
 	.dequeue = MLFQ_dequeue,
 	.pick_next = MLFQ_pick_next,
 	.proc_tick = MLFQ_proc_tick,
+    .get_load = MLFQ_get_load,
+    .get_proc = MLFQ_get_proc,
 };

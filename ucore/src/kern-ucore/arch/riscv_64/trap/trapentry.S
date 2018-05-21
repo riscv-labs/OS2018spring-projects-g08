@@ -20,7 +20,7 @@ _save_context:
     STORE x0, 0*REGBYTES(sp)
     STORE x1, 1*REGBYTES(sp)
     STORE x3, 3*REGBYTES(sp)
-    STORE x4, 4*REGBYTES(sp)
+    # STORE x4, 4*REGBYTES(sp)
     STORE x5, 5*REGBYTES(sp)
     STORE x6, 6*REGBYTES(sp)
     STORE x7, 7*REGBYTES(sp)
@@ -86,7 +86,7 @@ _restore_context:
     # restore x registers
     LOAD x1, 1*REGBYTES(sp)
     LOAD x3, 3*REGBYTES(sp)
-    LOAD x4, 4*REGBYTES(sp)
+    # LOAD x4, 4*REGBYTES(sp)
     LOAD x5, 5*REGBYTES(sp)
     LOAD x6, 6*REGBYTES(sp)
     LOAD x7, 7*REGBYTES(sp)

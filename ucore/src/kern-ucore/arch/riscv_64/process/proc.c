@@ -51,7 +51,7 @@ copy_thread(uint32_t clone_flags, struct proc_struct *proc, uintptr_t rsp,
 
     // Set a0 to 0 so a child process knows it's just forked
     proc->tf->gpr.a0 = 0;
-    proc->tf->gpr.sp = (rsp == 0) ? (uintptr_t)proc->tf - 4 : rsp;
+    proc->tf->gpr.sp = (rsp == 0) ? (uintptr_t)proc->tf : rsp; // TOOD: FIXME. szx use "proc-tf - 4"
 
     proc->context.ra = (uintptr_t)forkret;
     proc->context.sp = (uintptr_t)(proc->tf);
@@ -79,14 +79,16 @@ int kernel_thread(int (*fn) (void *), void *arg, uint32_t clone_flags)
 void forkret(void)
 {
 	if (!trap_in_kernel(current->tf)) {
-		kern_leave();
+		/* We don't support NUMA. */
+		// kern_leave();
 	}
 	forkrets(current->tf);
 }
 
 int kernel_execve(const char *name, const char **argv, const char **kenvp)
 {
-	int64_t argc = 0, ret;
+	kprintf("kernel execve:::\n");
+	uintptr_t argc = 0, ret;
     while (argv[argc] != NULL) {
         argc ++;
     }
@@ -121,6 +123,7 @@ init_new_context(struct proc_struct *proc, struct elfhdr *elf,
 	// Keep sstatus
 	uintptr_t sstatus = tf->status;
 	memset(tf, 0, sizeof(struct trapframe));
+
 	tf->gpr.sp = stacktop;
 	tf->epc = elf->e_entry;
 	tf->status = sstatus & ~(SSTATUS_SPP | SSTATUS_SPIE);

@@ -21,6 +21,16 @@ bool check_initrd() {
     return 1;
 }
 
+bool check_initrd_cp() {
+    if (initrd_cp_begin == initrd_cp_end) {
+        kprintf("Warning: No Initrd_cp!\n");
+        return 0;
+    }
+    kprintf("Initrd_cp: 0x%08x - 0x%08x, size: 0x%08x\n", initrd_cp_begin,
+            initrd_cp_end - 1, initrd_cp_end - initrd_cp_begin);
+    return 1;
+}
+
 bool check_swaprd() {
     if (swaprd_begin == swaprd_end) {
         kprintf("Warning: No Swaprd!\n");
@@ -51,6 +61,8 @@ void ramdisk_init(int devno, struct ide_device *dev) {
     memset(dev, 0, sizeof(struct ide_device));
     assert(INITRD_SIZE() % SECTSIZE == 0);
     kprintf("INITRD_SIZE():0x%x\n", INITRD_SIZE());
+    assert(INITRD_CP_SIZE() % SECTSIZE == 0);
+    kprintf("INITRD_CP_SIZE():0x%x\n", INITRD_CP_SIZE());
 #ifdef UCONFIG_SWAP    
     assert(SWAPRD_SIZE() % SECTSIZE == 0);
     kprintf("SWAPRD_SIZE():0x%x\n", SWAPRD_SIZE());
@@ -76,6 +88,16 @@ void ramdisk_init(int devno, struct ide_device *dev) {
             dev->size = (unsigned int)INITRD_SIZE() / SECTSIZE;
             dev->iobase = (void *) DISK_FS_VBASE;
             strcpy(dev->model, "KERN_INITRD");
+            dev->read_secs = ramdisk_read;
+            dev->write_secs = ramdisk_write;
+        }
+    } else if (devno == DISK1_DEV_NO) {
+        if (CHECK_INITRD_CP_EXIST()) {
+            dev->valid = 1;
+            dev->sets = ~0;
+            dev->size = (unsigned int)INITRD_CP_SIZE() / SECTSIZE;
+            dev->iobase = (void *) DISK2_FS_VBASE;
+            strcpy(dev->model, "KERN_INITRD_CP");
             dev->read_secs = ramdisk_read;
             dev->write_secs = ramdisk_write;
         }

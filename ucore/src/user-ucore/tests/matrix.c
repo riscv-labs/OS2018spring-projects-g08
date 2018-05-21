@@ -69,7 +69,7 @@ int main(void)
 			goto failed;
 		}
 	}
-
+	
 	cprintf("matrix pass.\n");
 	return 0;
 

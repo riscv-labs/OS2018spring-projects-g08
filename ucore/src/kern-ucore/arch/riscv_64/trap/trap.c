@@ -127,6 +127,7 @@ static volatile int in_swap_tick_event = 0;
 extern struct mm_struct *check_mm_struct;
 
 void interrupt_handler(struct trapframe *tf) {
+
     intptr_t cause = (tf->cause << 1) >> 1;
     switch (cause) {
         case IRQ_U_SOFT:
@@ -153,11 +154,20 @@ void interrupt_handler(struct trapframe *tf) {
             // directly.
             // clear_csr(sip, SIP_STIP);
             clock_set_next_event();
-            ++ticks;
+            
+            // if(ticks % 100 == 0 && myid() == 1)
+            //     kprintf("TIMER on 1\n");
+            if(myid() == 0){ // TODO: this is not so symmetry
+            // find a more elegant solution
+                ++ticks;
+            }
+
             run_timer_list();
 
-            serial_intr();
-            dev_stdin_write(cons_getc());
+            if(myid() == 0){
+                serial_intr();
+                dev_stdin_write(cons_getc());
+            }
             break;
         case IRQ_H_TIMER:
             kprintf("Hypervisor software interrupt\n");
@@ -239,11 +249,10 @@ void exception_handler(struct trapframe *tf) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
                     if (trap_in_kernel(tf)) {
-                        panic("handle pgfault failed in kernel mode. ret=%d\n",
-                              ret);
+                        // panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
                     }
                     kprintf("killed by kernel.\n");
-                    panic("handle user mode pgfault failed. ret=%d\n", ret);
+                    // panic("handle user mode pgfault failed. ret=%d\n", ret);
                     do_exit(-E_KILLED);
                 }
             }
@@ -255,11 +264,10 @@ void exception_handler(struct trapframe *tf) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
                     if (trap_in_kernel(tf)) {
-                        panic("handle pgfault failed in kernel mode. ret=%d\n",
-                              ret);
+                        // panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
                     }
                     kprintf("killed by kernel.\n");
-                    panic("handle user mode pgfault failed. ret=%d\n", ret);
+                    // panic("handle user mode pgfault failed. ret=%d\n", ret);
                     do_exit(-E_KILLED);
                 }
             }
@@ -295,7 +303,6 @@ trap(struct trapframe *tf) {
         current->tf = tf;
 
         bool in_kernel = trap_in_kernel(tf);
-
         trap_dispatch(tf);
 
         current->tf = otf;

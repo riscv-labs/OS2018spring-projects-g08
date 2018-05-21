@@ -37,8 +37,6 @@ static inline int __ucore_is_linux_timer(timer_t * t)
 	return (t->linux_timer.linux_timer != NULL);
 }
 
-struct run_queue;
-
 // The introduction of scheduling classes is borrrowed from Linux, and makes the 
 // core scheduler quite extensible. These classes (the scheduler modules) encapsulate 
 // the scheduling policies. 
@@ -55,13 +53,13 @@ struct sched_class {
 	struct proc_struct *(*pick_next) (struct run_queue * rq);
 	// dealer of the time-tick
 	void (*proc_tick) (struct run_queue * rq, struct proc_struct * proc);
-	/* for SMP support in the future
-	 *  load_balance
-	 *  void (*load_balance)(struct rq* rq);
+    // get load (big means cpu have a lot of jobs to do)
+    double (*get_load) (struct run_queue * rq);
+    /* ge]t some proc
 	 *  get some proc from this rq, used in load_balance,
 	 *  return value is the num of gotten proc
-	 *  int (*get_proc)(struct rq* rq, struct proc* procs_moved[]);
 	 */
+	int (*get_proc)(struct run_queue* rq, struct proc_struct* procs_moved[], int needs);
 };
 
 struct run_queue {

@@ -12,15 +12,17 @@
 #include <arch.h>
 #include <slab.h>
 #include <proc.h>
-#include <mp.h>
+#include <smp.h>
 #include <vmm.h>
 #include <swap.h>
 #include <ide.h>
 #include <ramdisk.h>
 
-static DEFINE_PERCPU_NOINIT(size_t, used_pages);
-DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
+/* We don't support NUMA. */
+// static DEFINE_PERCPU_NOINIT(size_t, used_pages);
+// DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
 
+extern struct cpu cpus[];
 
 // virtual address of physical page array
 struct Page *pages;
@@ -39,6 +41,7 @@ uintptr_t boot_cr3;
 
 // physical memory management
 const struct pmm_manager *pmm_manager;
+spinlock_s pmm_lock;
 
 /* *
  * The page directory entry corresponding to the virtual address range
@@ -62,6 +65,7 @@ static void init_pmm_manager(void) {
     kprintf("memory management: %s\n", pmm_manager->name);
 
     pmm_manager->init();
+    spinlock_init(&pmm_lock);
 }
 
 // init_memmap - call pmm->init_memmap to build Page struct for free memory
@@ -123,9 +127,11 @@ struct Page *alloc_pages(size_t n) {
 try_again:
 #endif
 	local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
 	{
 		page = pmm_manager->alloc_pages(n);
 	}
+    spinlock_release(&pmm_lock);
 	local_intr_restore(intr_flag);
 #ifdef UCONFIG_SWAP
 	if (page == NULL && try_free_pages(n)) {
@@ -133,7 +139,11 @@ try_again:
 	}
 #endif
 
-	get_cpu_var(used_pages) += n;
+    /* We don't support NUMA. */
+	// get_cpu_var(used_pages) += n;
+
+    mycpu()->used_pages += n;    
+
 	return page;
 }
 
@@ -141,16 +151,26 @@ try_again:
 void free_pages(struct Page *base, size_t n) {
     bool intr_flag;
     local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
     {
         pmm_manager->free_pages(base, n);
     }
+    spinlock_release(&pmm_lock);
     local_intr_restore(intr_flag);
-    get_cpu_var(used_pages) -= n;
+
+    /* We don't support NUMA. */
+    // get_cpu_var(used_pages) -= n;
+
+    mycpu()->used_pages -= n;    
 }
 
 size_t nr_used_pages(void)
 {
-	return get_cpu_var(used_pages);
+    int i;
+    size_t r = 0;
+    for(i = 0; i < NCPU; i ++)
+        r += cpus[i].used_pages;
+    return r;
 }
 
 // nr_free_pages - call pmm->nr_free_pages to get the size (nr*PAGESIZE)
@@ -159,9 +179,11 @@ size_t nr_free_pages(void) {
     size_t ret;
     bool intr_flag;
     local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
     {
         ret = pmm_manager->nr_free_pages();
     }
+    spinlock_release(&pmm_lock);
     local_intr_restore(intr_flag);
     return ret;
 }
@@ -173,7 +195,7 @@ static void page_init(void) {
     va_pa_offset = KERNBASE - (uint64_t)kern_entry;
 
     uint64_t mem_begin = (uint64_t)kern_entry;
-    uint64_t mem_end = (128 << 20) + DRAM_BASE; // 128MB memory on qemu
+    uint64_t mem_end = (256 << 20) + DRAM_BASE; // 256MB memory on qemu
     uint64_t mem_size = mem_end - mem_begin;
 
     kprintf("physical memory map:\n");
@@ -260,9 +282,11 @@ void pmm_init(void) {
     // Now the first_fit/best_fit/worst_fit/buddy_system pmm are available.
     init_pmm_manager();
     
+    
     // detect physical memory space, reserve already used memory,
     // then use pmm->init_memmap to create free page list
     page_init();
+
 
     // use pmm->check to verify the correctness of the alloc/free function in a
     // pmm
@@ -289,6 +313,12 @@ void pmm_init(void) {
 				 (uintptr_t) PADDR(initrd_begin), PTE_W | PTE_R);
 		kprintf("mapping initrd to 0x%08x\n", DISK_FS_VBASE);
 	}
+    if (CHECK_INITRD_CP_EXIST()) {
+		boot_map_segment(boot_pgdir, DISK2_FS_VBASE,
+				 ROUNDUP(initrd_cp_end - initrd_cp_begin, PGSIZE),
+				 (uintptr_t) PADDR(initrd_cp_begin), PTE_W | PTE_R);
+		kprintf("mapping initrd_cp to 0x%08x\n", DISK2_FS_VBASE);
+	}
 #ifdef UCONFIG_SWAP
     if (CHECK_SWAPRD_EXIST()) {
 		boot_map_segment(boot_pgdir, DISK_SWAP_VBASE,
@@ -314,9 +344,15 @@ void pmm_init(void) {
 void pmm_init_ap(void)
 {
 	list_entry_t *page_struct_free_list =
-	    get_cpu_ptr(page_struct_free_list);
+	    &mycpu()->page_struct_free_list;
 	list_init(page_struct_free_list);
-	get_cpu_var(used_pages) = 0;
+    
+	mycpu()->used_pages = 0;
+    /* We don't support NUMA. */
+    // list_entry_t *page_struct_free_list =
+	//     get_cpu_ptr(page_struct_free_list);
+	// list_init(page_struct_free_list);
+	// get_cpu_var(used_pages) = 0;
 }
 
 // invalidate a TLB entry, but only if the page tables being
@@ -333,6 +369,7 @@ void tlb_invalidate(pgd_t *pgdir, uintptr_t la) {
 }
 
 void check_alloc_page(void) {
+    assert(myid() == 0);
     pmm_manager->check();
     kprintf("check_alloc_page() succeeded!\n");
 }
@@ -471,51 +508,51 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
 
 // print_pgdir - print the PDT&PT
 void print_pgdir(void) {
-    kprintf("-------------------- BEGIN --------------------\n");
-    size_t left, right = 0, perm;
-    while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
-                                     &right)) != 0) {
-        kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
-                right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
+    // kprintf("-------------------- BEGIN --------------------\n");
+    // size_t left, right = 0, perm;
+    // while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
+    //                                  &right)) != 0) {
+    //     kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
+    //             right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
 
-        if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
-            continue;
-        }
+    //     if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
+    //         continue;
+    //     }
 
-        size_t l, r = left * NPTEENTRY;
-        uintptr_t i;
-        size_t old_l, old_r, old_perm = 0;
-        for (i = left; i < right; i++) {
-            while (1) {
-                perm = get_pgtable_items(
-                    i * NPTEENTRY, (i + 1) * NPTEENTRY, r,
-                    (uintptr_t *)(KADDR((uintptr_t)PDE_ADDR(vpd[i]))) -
-                        i * NPTEENTRY,
-                    &l, &r);
+    //     size_t l, r = left * NPTEENTRY;
+    //     uintptr_t i;
+    //     size_t old_l, old_r, old_perm = 0;
+    //     for (i = left; i < right; i++) {
+    //         while (1) {
+    //             perm = get_pgtable_items(
+    //                 i * NPTEENTRY, (i + 1) * NPTEENTRY, r,
+    //                 (uintptr_t *)(KADDR((uintptr_t)PDE_ADDR(vpd[i]))) -
+    //                     i * NPTEENTRY,
+    //                 &l, &r);
 
-                if (perm == 0) {
-                    break;
-                }
+    //             if (perm == 0) {
+    //                 break;
+    //             }
 
-                if (old_perm != perm) {
-                    if (old_perm != 0) {
-                        kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
-                                old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
-                                (old_r - old_l) * PGSIZE, perm2str(old_perm));
-                    }
-                    old_l = l;
-                    old_r = r;
-                    old_perm = perm;
-                } else {
-                    old_r = r;
-                }
-            }
-        }
-        if (old_perm != 0) {
-            kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
-                    old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
-                    perm2str(old_perm));
-        }
-    }
-    kprintf("--------------------- END ---------------------\n");
+    //             if (old_perm != perm) {
+    //                 if (old_perm != 0) {
+    //                     kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
+    //                             old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
+    //                             (old_r - old_l) * PGSIZE, perm2str(old_perm));
+    //                 }
+    //                 old_l = l;
+    //                 old_r = r;
+    //                 old_perm = perm;
+    //             } else {
+    //                 old_r = r;
+    //             }
+    //         }
+    //     }
+    //     if (old_perm != 0) {
+    //         kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
+    //                 old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
+    //                 perm2str(old_perm));
+    //     }
+    // }
+    // kprintf("--------------------- END ---------------------\n");
 }

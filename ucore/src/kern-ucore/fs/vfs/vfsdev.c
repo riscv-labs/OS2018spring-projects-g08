@@ -15,6 +15,7 @@
 #include <error.h>
 #include <assert.h>
 #include <kio.h>
+#include <mod.h>
 
 /*
  * Structure for a single named device.
@@ -317,6 +318,8 @@ out:
 	return ret;
 }
 
+EXPORT_SYMBOL(vfs_mount);
+
 /*
  * Unmount a filesystem/device by name.
  * First calls fsop_sync on the filesystem; then calls fsop_umount.
@@ -348,6 +351,9 @@ out:
 	unlock_vdev_list();
 	return ret;
 }
+
+EXPORT_SYMBOL(vfs_unmount);
+
 
 /*
  * Global unmount function.

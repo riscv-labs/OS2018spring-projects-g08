@@ -23,6 +23,9 @@ void ide_init(void) {
 #endif
     ramdisk_init(DISK0_DEV_NO, &ide_devices[DISK0_DEV_NO]);
     assert(VALID_IDE(DISK0_DEV_NO));
+
+    ramdisk_init(DISK1_DEV_NO, &ide_devices[DISK1_DEV_NO]);
+    assert(VALID_IDE(DISK1_DEV_NO));
 }
 
 bool ide_device_valid(unsigned short ideno) {
