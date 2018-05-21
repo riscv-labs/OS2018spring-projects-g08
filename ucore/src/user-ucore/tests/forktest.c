@@ -2,19 +2,15 @@
 #include <stdio.h>
 
 const int max_child = 32;
-static sem_t print_lock;
 
 
 int main(void)
 {
-	print_lock = sem_init(1);
 	int n, pid;
 	for (n = 0; n < max_child; n++) {
 		pid = fork();
 		if (pid == 0) {
-			sem_wait(print_lock);
 			cprintf("I am child %d\n", n);
-			sem_post(print_lock);
 			exit(0);
 		}
 		assert(pid > 0);

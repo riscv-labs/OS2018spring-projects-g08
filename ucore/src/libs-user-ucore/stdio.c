@@ -39,12 +39,14 @@ int vcprintf(const char *fmt, va_list ap)
  * */
 int cprintf(const char *fmt, ...)
 {
+	sem_wait(cprintf_lock);
 	va_list ap;
 
 	va_start(ap, fmt);
 	int cnt = vcprintf(fmt, ap);
 	va_end(ap);
 
+	sem_post(cprintf_lock);
 	return cnt;
 }
 
@@ -54,12 +56,14 @@ int cprintf(const char *fmt, ...)
  * */
 int cputs(const char *str)
 {
+	sem_wait(cprintf_lock);
 	int cnt = 0;
 	char c;
 	while ((c = *str++) != '\0') {
 		cputch(c, &cnt);
 	}
 	cputch('\n', &cnt);
+	sem_post(cprintf_lock);
 	return cnt;
 }
 
@@ -83,6 +87,6 @@ int fprintf(int fd, const char *fmt, ...)
 	va_start(ap, fmt);
 	int cnt = vfprintf(fd, fmt, ap);
 	va_end(ap);
-
+	
 	return cnt;
 }
