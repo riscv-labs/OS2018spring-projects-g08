@@ -8,7 +8,7 @@
 # necessary memory mapping to switch to the higher address.
 # The value of KCODE must match the definitions in kernel.h and kernel.ld.
 
-#define KBASE 0xFFFFFF8000000000
+#define KBASE 0xFFFFFFC000000000
 
 # PADDR(x) is the physical memory address corresponding to x.
 # Until we set up the memory map, fairly late in this file, we have to
@@ -23,7 +23,7 @@ kern_entry:
 
     # setup paging
     la t0, __boot_pgdir
-    srli t0, t0, PGSHIFT
+    srli t0, t0, RISCV_PGSHIFT
     li t1, SATP_SV39
     or t0, t0, t1
     csrw satp, t0
@@ -52,16 +52,16 @@ reallocated:
 
 
 .section .data
-    .align PGSHIFT
-# Initial stack
+    .align RISCV_PGSHIFT
+    # Initial stack
     .comm stack, KSTACKSIZE * 8 # FIXME: Most 8 processers.
 
-    .align PGSHIFT
+    .align RISCV_PGSHIFT
     .global __boot_pgdir
 __boot_pgdir:
-    .space PUX(PHY_MEM_BASE) * PTE_SIZE - (. - __boot_pgdir)
-    # map va PHY_MEM_BASE + (0G~1G) to pa PHY_MEM_BASE + (0G~1G) (temporary)
-    .quad PHY_MEM_BASE / 4 + (PTE_V | PTE_R | PTE_W | PTE_X)
+    .space PUX(DRAM_BASE) * PTE_SIZE - (. - __boot_pgdir)
+    # map va DRAM_BASE + (0G~1G) to pa DRAM_BASE + (0G~1G) (temporary)
+    .quad DRAM_BASE / 4 + (PTE_V | PTE_R | PTE_W | PTE_X)
     .space PUX(KBASE) * PTE_SIZE - (. - __boot_pgdir)
     # map va KBASE + (0G~4G) to pa 0G~4G
     .quad 0x00000000 / 4 + (PTE_V | PTE_R | PTE_W | PTE_X | PTE_G)
@@ -69,10 +69,3 @@ __boot_pgdir:
     .quad 0x80000000 / 4 + (PTE_V | PTE_R | PTE_W | PTE_X | PTE_G)
     .quad 0xC0000000 / 4 + (PTE_V | PTE_R | PTE_W | PTE_X | PTE_G)
     .space PGSIZE - (. - __boot_pgdir)
-
-
-#    .global bootstack
-#bootstack:
-#    .space KSTACKSIZE
-#    .global bootstacktop
-#bootstacktop:

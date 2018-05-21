@@ -29,7 +29,7 @@ struct Page *pages;
 // amount of physical memory (in pages)
 size_t npage = 0;
 // the kernel image is mapped at VA=KERNBASE and PA=info.base
-uint64_t va_pa_offset;
+uint64_t va_pa_offset = 0xFFFFFFC000000000;
 // memory starts at 0x80000000 in RISC-V
 const size_t nbase = DRAM_BASE / PGSIZE;
 
@@ -192,20 +192,18 @@ size_t nr_free_pages(void) {
 static void page_init(void) {
     extern char kern_entry[];
 
-    va_pa_offset = KERNBASE - (uint64_t)kern_entry;
-
-    uint64_t mem_begin = (uint64_t)kern_entry;
+    uint64_t mem_begin = (uint64_t)PADDR(kern_entry);
     uint64_t mem_end = (256 << 20) + DRAM_BASE; // 256MB memory on qemu
     uint64_t mem_size = mem_end - mem_begin;
 
     kprintf("physical memory map:\n");
-    kprintf("  memory: 0x%08lx, [0x%08lx, 0x%08lx].\n", mem_size, mem_begin,
+    kprintf("  memory: 0x%016llx, [0x%016llx, 0x%016llx].\n", mem_size, mem_begin,
             mem_end - 1);
 
     uint64_t maxpa = mem_end;
 
-    if (maxpa > KERNTOP) {
-        maxpa = KERNTOP;
+    if (maxpa > PADDR(KERNTOP)) {
+        maxpa = PADDR(KERNTOP);
     }
 
     extern char end[];
@@ -236,7 +234,7 @@ static void enable_paging(void) {
 
 // boot_map_segment - setup&enable the paging mechanism
 // parameters
-//  la:   linear address of this memory need to map (after x86 segment map)
+//  la:   linear address of this memory need to map
 //  size: memory size
 //  pa:   physical address of this memory
 //  perm: permission of this memory
@@ -271,7 +269,7 @@ void *boot_alloc_page(void) {
 //         - check the correctness of pmm & paging mechanism, print PDT&PT
 void pmm_init(void) {  
     // We've already enabled paging
-    boot_cr3 = PADDR(boot_pgdir);      
+    boot_cr3 = PADDR(boot_pgdir);
     // We need to alloc/free the physical memory (granularity is 4KB or other
     // size).
     // So a framework of physical memory manager (struct pmm_manager)is defined
@@ -292,6 +290,11 @@ void pmm_init(void) {
     // pmm
     check_alloc_page();
 
+    // create boot_pgdir, an initial page directory(Page Directory Table, PDT)
+    boot_pgdir = boot_alloc_page();
+    memset(boot_pgdir, 0, PGSIZE);
+    boot_cr3 = PADDR(boot_pgdir);
+
     check_pgdir();
 
     static_assert(KERNBASE % PTSIZE == 0 && KERNTOP % PTSIZE == 0);
@@ -302,8 +305,6 @@ void pmm_init(void) {
     boot_pgdir[PGX(VPT)] = pte_create(PPN(boot_cr3), PAGE_TABLE_DIR);
 
     // map all physical memory to linear memory with base linear addr KERNBASE
-    // linear_addr KERNBASE~KERNBASE+KMEMSIZE = phy_addr 0~KMEMSIZE
-    // But shouldn't use this map until enable_paging() & gdt_init() finished.
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PADDR(KERNBASE),
                      READ_WRITE_EXEC);
 
@@ -311,27 +312,23 @@ void pmm_init(void) {
 		boot_map_segment(boot_pgdir, DISK_FS_VBASE,
 				 ROUNDUP(initrd_end - initrd_begin, PGSIZE),
 				 (uintptr_t) PADDR(initrd_begin), PTE_W | PTE_R);
-		kprintf("mapping initrd to 0x%08x\n", DISK_FS_VBASE);
+		kprintf("mapping initrd to 0x%016llx\n", DISK_FS_VBASE);
 	}
     if (CHECK_INITRD_CP_EXIST()) {
 		boot_map_segment(boot_pgdir, DISK2_FS_VBASE,
 				 ROUNDUP(initrd_cp_end - initrd_cp_begin, PGSIZE),
 				 (uintptr_t) PADDR(initrd_cp_begin), PTE_W | PTE_R);
-		kprintf("mapping initrd_cp to 0x%08x\n", DISK2_FS_VBASE);
+		kprintf("mapping initrd_cp to 0x%016llx\n", DISK2_FS_VBASE);
 	}
 #ifdef UCONFIG_SWAP
     if (CHECK_SWAPRD_EXIST()) {
 		boot_map_segment(boot_pgdir, DISK_SWAP_VBASE,
 				 ROUNDUP(swaprd_end - swaprd_begin, PGSIZE),
 				 (uintptr_t) PADDR(swaprd_begin), PTE_W | PTE_R);
-		kprintf("mapping swaprd to 0x%08x\n", DISK_SWAP_VBASE);
+		kprintf("mapping swaprd to 0x%016llx\n", DISK_SWAP_VBASE);
 	}
 #endif
-    // temporary map:
-    // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M =
-    // phy_addr 0~4M
-    // boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
-
+    enable_paging();
     // now the basic virtual memory map(see memalyout.h) is established.
     // check the correctness of the basic virtual memory map.
     check_boot_pgdir();
@@ -508,51 +505,5 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
 
 // print_pgdir - print the PDT&PT
 void print_pgdir(void) {
-    // kprintf("-------------------- BEGIN --------------------\n");
-    // size_t left, right = 0, perm;
-    // while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
-    //                                  &right)) != 0) {
-    //     kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
-    //             right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
 
-    //     if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
-    //         continue;
-    //     }
-
-    //     size_t l, r = left * NPTEENTRY;
-    //     uintptr_t i;
-    //     size_t old_l, old_r, old_perm = 0;
-    //     for (i = left; i < right; i++) {
-    //         while (1) {
-    //             perm = get_pgtable_items(
-    //                 i * NPTEENTRY, (i + 1) * NPTEENTRY, r,
-    //                 (uintptr_t *)(KADDR((uintptr_t)PDE_ADDR(vpd[i]))) -
-    //                     i * NPTEENTRY,
-    //                 &l, &r);
-
-    //             if (perm == 0) {
-    //                 break;
-    //             }
-
-    //             if (old_perm != perm) {
-    //                 if (old_perm != 0) {
-    //                     kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
-    //                             old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
-    //                             (old_r - old_l) * PGSIZE, perm2str(old_perm));
-    //                 }
-    //                 old_l = l;
-    //                 old_r = r;
-    //                 old_perm = perm;
-    //             } else {
-    //                 old_r = r;
-    //             }
-    //         }
-    //     }
-    //     if (old_perm != 0) {
-    //         kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
-    //                 old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
-    //                 perm2str(old_perm));
-    //     }
-    // }
-    // kprintf("--------------------- END ---------------------\n");
 }

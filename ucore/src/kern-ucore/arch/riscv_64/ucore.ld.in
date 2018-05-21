@@ -5,14 +5,14 @@ OUTPUT_ARCH(riscv)
 ENTRY(kern_entry)
 
 /* TODO: SUPER DIRTY WORKAROUND */
-BASE_ADDRESS = 0xFFFFFF8080200000;
+BASE_ADDRESS = 0xFFFFFFC080200000;
 
 SECTIONS
 {
     /* Load the kernel at this address: "." means the current address */
     . = BASE_ADDRESS;
 
-    .text : {
+    .text : AT(0x80200000) {
         *(.text.kern_entry .text .stub .text.* .gnu.linkonce.t.*)
     }
 
