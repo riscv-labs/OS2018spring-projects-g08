@@ -27,8 +27,24 @@ void mp_tlb_update(pgd_t* pgdir, uintptr_t la){
 }
 
 void mp_set_mm_pagetable(struct mm_struct* mm){
+    mp_tlb_flush();
     if(mm == NULL)
         lcr3(boot_cr3);
     else
         lcr3(PADDR(mm->pgdir));
+}
+
+void mp_tlb_flush() {
+    asm volatile ("sfence.vma");
+}
+
+void post_swtch()
+{
+    if (mycpu()->prev->state == PROC_RUNNABLE && mycpu()->prev->pid >= NCPU)
+    {
+        mycpu()->prev->cpu_affinity = myid();
+        // sched_class_enqueue(mycpu()->prev);
+    }
+    
+    // release(&mycpu()->prev->lock);
 }

@@ -31,6 +31,7 @@ struct cpu {
   list_entry_t page_struct_free_list;
   spinlock_s rqueue_lock;
   struct __timer_list_t timer_list;
+  struct proc_struct* prev;
   // and idle process
 };
 
@@ -42,5 +43,7 @@ void smp_init();
 void mp_tlb_invalidate(pgd_t* pgdir, uintptr_t la);
 void mp_tlb_update(pgd_t* pgdir, uintptr_t la);
 void mp_set_mm_pagetable(struct mm_struct* mm);
+void mp_tlb_flush();
+void post_swtch();
 
 #endif
