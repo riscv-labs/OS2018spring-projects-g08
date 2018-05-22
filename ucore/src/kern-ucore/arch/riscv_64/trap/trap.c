@@ -120,7 +120,14 @@ static int pgfault_handler(struct trapframe *tf) {
         }
         mm = current->mm;
     }
-    return do_pgfault(mm, 3, tf->badvaddr);
+    if (!trap_in_kernel(tf)) {
+        if (!USER_ACCESS(tf->badvaddr, tf->badvaddr + 1)) {
+            kprintf("user read kernel!\n");
+            print_trapframe(tf);
+            return -1;
+        }
+    }
+    return do_pgfault(mm, tf->status | 3, tf->badvaddr);
 }
 
 static volatile int in_swap_tick_event = 0;

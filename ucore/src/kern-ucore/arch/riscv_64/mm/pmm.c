@@ -245,7 +245,7 @@ void boot_map_segment(pgd_t *pgdir, uintptr_t la, size_t size,
     la = ROUNDDOWN(la, PGSIZE);
     pa = ROUNDDOWN(pa, PGSIZE);
     for (; n > 0; n--, la += PGSIZE, pa += PGSIZE) {
-        pte_t *ptep = get_pte(pgdir, la, 1);
+        pte_t *ptep = get_pte(pgdir, la, 1);        
         assert(ptep != NULL);
 		ptep_map(ptep, pa);
 		ptep_set_perm(ptep, perm);
@@ -393,11 +393,9 @@ void check_pgdir(void) {
     assert(get_pte(boot_pgdir, PGSIZE, 0) == ptep);
 
     p2 = alloc_page();
-    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_U | PTE_W) == 0);
+    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_W) == 0);
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
-    assert(*ptep & PTE_U);
     assert(*ptep & PTE_W);
-    //assert(boot_pgdir[0] & PTE_U);
     assert(page_ref(p2) == 1);
 
     assert(page_insert(boot_pgdir, p1, PGSIZE, 0) == 0);

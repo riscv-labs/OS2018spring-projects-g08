@@ -130,26 +130,3 @@ void __attribute__((noinline)) grade_backtrace0(int arg0, int arg1, int arg2) {
 }
 
 void grade_backtrace(void) { grade_backtrace0(0, (int)kern_init, 0xffff0000); }
-
-static void lab1_print_cur_status(void) {
-    static int round = 0;
-    round++;
-}
-
-static void lab1_switch_to_user(void) {
-    // LAB1 CHALLENGE 1 : TODO
-}
-
-static void lab1_switch_to_kernel(void) {
-    // LAB1 CHALLENGE 1 :  TODO
-}
-
-static void lab1_switch_test(void) {
-    lab1_print_cur_status();
-    kprintf("+++ switch to  user  mode +++\n");
-    lab1_switch_to_user();
-    lab1_print_cur_status();
-    kprintf("+++ switch to kernel mode +++\n");
-    lab1_switch_to_kernel();
-    lab1_print_cur_status();
-}
