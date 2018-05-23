@@ -20,6 +20,10 @@ switch_to:
     STORE s10, 12*REGBYTES(a0)
     STORE s11, 13*REGBYTES(a0)
 
+    mv s2, a1
+    jal post_switch
+    mv a1, s2
+
     # restore to's registers
     LOAD ra, 0*REGBYTES(a1)
     LOAD sp, 1*REGBYTES(a1)

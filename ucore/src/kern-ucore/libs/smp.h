@@ -35,7 +35,7 @@ struct cpu {
   // and idle process
 };
 
-struct cpu* mycpu();
+#include <arch_smp.h>
 
 #define myid() (mycpu()->id)
 
@@ -44,6 +44,5 @@ void mp_tlb_invalidate(pgd_t* pgdir, uintptr_t la);
 void mp_tlb_update(pgd_t* pgdir, uintptr_t la);
 void mp_set_mm_pagetable(struct mm_struct* mm);
 void mp_tlb_flush();
-void post_swtch();
 
 #endif

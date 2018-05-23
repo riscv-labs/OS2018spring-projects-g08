@@ -38,13 +38,3 @@ void mp_tlb_flush() {
     asm volatile ("sfence.vma");
 }
 
-void post_swtch()
-{
-    if (mycpu()->prev->state == PROC_RUNNABLE && mycpu()->prev->pid >= NCPU)
-    {
-        mycpu()->prev->cpu_affinity = myid();
-        // sched_class_enqueue(mycpu()->prev);
-    }
-    
-    // release(&mycpu()->prev->lock);
-}

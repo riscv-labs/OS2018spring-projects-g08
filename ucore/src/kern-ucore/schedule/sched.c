@@ -278,13 +278,7 @@ void schedule(void)
 	#endif
 	{
 		current->need_resched = 0;
-		if (current->state == PROC_RUNNABLE
-		    && current->pid >= lcpu_count) { // if not an idle proc
-			current->cpu_affinity = myid();
-			sched_class_enqueue(current);
-		}
-
-        load_balance();
+		load_balance();
 
         spinlock_acquire(&mycpu()->rqueue_lock);
         {
@@ -405,4 +399,16 @@ void run_timer_list(void)
 		sched_class_proc_tick(current);
 	}
 	spin_unlock_irqrestore(&mycpu()->timer_list.lock, intr_flag);
+}
+
+void post_switch(void)
+{
+    struct proc_struct* prev = mycpu()->prev;
+    spinlock_acquire(&prev->lock);
+    if (prev->state == PROC_RUNNABLE && prev->pid >= NCPU)
+    {
+        prev->cpu_affinity = myid();
+        sched_class_enqueue(prev);
+    }
+    spinlock_release(&prev->lock);
 }

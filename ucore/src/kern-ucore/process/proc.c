@@ -198,7 +198,7 @@ void proc_run(struct proc_struct *proc)
 			tls_switch(next);
 #endif //UCONFIG_BIONIC_LIBC
 
-
+			mycpu()->prev = prev;
 			switch_to(&(prev->context), &(next->context));
 		}
 		local_intr_restore(intr_flag);
@@ -1370,8 +1370,11 @@ repeat:
 		} while (cproc != current);
 	}
 	if (haskid) {
+		int intr_flag;
+		spin_lock_irqsave(&current->lock, intr_flag);
 		current->state = PROC_SLEEPING;
 		current->wait_state = WT_CHILD;
+		spin_unlock_irqrestore(&current->lock, intr_flag);
 		schedule();
 		may_killed();
 		goto repeat;
@@ -2001,6 +2004,8 @@ static int init_main(void *arg)
 
 	unsigned int nr_process_store = nr_process;
 
+	assert(nr_process_store == NCPU + 1);
+
 	pid = ucore_kernel_thread(user_main, NULL, 0);
 
 	if (pid <= 0) {
@@ -2035,6 +2040,9 @@ static int init_main(void *arg)
 	       && kswapd->optr == NULL);
 	assert(nr_process == 2 + NCPU);
 #else
+	// FIXME: what?? wait seems to be problematic
+	if(nr_process != 1 + NCPU)
+		kprintf("%d != %d\n", nr_process, 1 + NCPU);
 	assert(nr_process == 1 + NCPU);
 #endif
 	assert(nr_used_pages_store == nr_used_pages());
