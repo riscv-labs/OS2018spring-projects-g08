@@ -1,1 +1,1 @@
-obj-y = smp.o smp_arch.o
+obj-y = smp.o 

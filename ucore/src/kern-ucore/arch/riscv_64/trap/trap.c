@@ -256,10 +256,9 @@ void exception_handler(struct trapframe *tf) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
                     if (trap_in_kernel(tf)) {
-                        // panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
+                        panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
                     }
                     kprintf("killed by kernel.\n");
-                    // panic("handle user mode pgfault failed. ret=%d\n", ret);
                     do_exit(-E_KILLED);
                 }
             }
@@ -271,10 +270,9 @@ void exception_handler(struct trapframe *tf) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
                     if (trap_in_kernel(tf)) {
-                        // panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
+                        panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
                     }
                     kprintf("killed by kernel.\n");
-                    // panic("handle user mode pgfault failed. ret=%d\n", ret);
                     do_exit(-E_KILLED);
                 }
             }

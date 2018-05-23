@@ -52,7 +52,6 @@ static void start_others(){
 }
 
 int kern_init(uintptr_t hartid, uintptr_t good) {
-    uintptr_t sp;
     asm volatile ("mv tp, %0;" : : "r"(cpus + hartid));
     if(hartid != 0){
         // wait for bsp to do init work
