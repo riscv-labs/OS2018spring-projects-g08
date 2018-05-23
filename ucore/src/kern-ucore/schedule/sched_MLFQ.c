@@ -22,8 +22,8 @@ static void MLFQ_enqueue(struct run_queue *rq, struct proc_struct *proc)
 {
 	// FIXME: only a quick fix to enhance the stability
 	// it means something goes wrong elsewhere
-	if(!list_empty(&proc->run_link))
-		return;
+	// if(!list_empty(&proc->run_link))
+		// return;
 	assert(list_empty(&(proc->run_link)));
 	struct run_queue *nrq = rq;
 	if (proc->rq != NULL && proc->time_slice == 0) {
