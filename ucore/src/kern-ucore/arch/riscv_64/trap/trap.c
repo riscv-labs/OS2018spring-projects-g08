@@ -51,11 +51,12 @@ bool trap_in_kernel(struct trapframe *tf) {
 
 void print_trapframe(struct trapframe *tf) {
     kprintf("trapframe at %p\n", tf);
-    print_regs(&tf->gpr);
     kprintf("  status   0x%016lx\n", tf->status);
     kprintf("  epc      0x%016lx\n", tf->epc);
     kprintf("  badvaddr 0x%016lx\n", tf->badvaddr);
     kprintf("  cause    0x%016lx\n", tf->cause);
+    print_stackframe();
+    print_regs(&tf->gpr);
 }
 
 void print_regs(struct pushregs *gpr) {

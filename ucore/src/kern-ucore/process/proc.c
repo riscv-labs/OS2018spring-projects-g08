@@ -633,7 +633,6 @@ int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
 		} else {
 			proc->gid = proc->pid;
 		}
-		kprintf("new %d proc\n", proc->pid);
 	}
 	spin_unlock_irqrestore(&proc_lock, intr_flag);
 

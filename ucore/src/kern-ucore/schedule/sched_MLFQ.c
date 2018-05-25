@@ -21,35 +21,29 @@ static void MLFQ_init(struct run_queue *rq)
 extern struct cpu cpus[];
 
 int findRQ(struct run_queue *rq) {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < NCPU; i++) {
 		if (rq == &(cpus[i].rqueue)) return i;
 	}
-	return -1;
+	panic("rq is not in cpus.rqueue\n");
 }
 
 static void MLFQ_enqueue(struct run_queue *rq, struct proc_struct *proc)
 {
-	if(!list_empty(&proc->run_link)) {
-		kprintf("======proc rq:%d\n", findRQ(proc->rq));
-		kprintf("======rq:%d\n", findRQ(rq));
-		kprintf("current cpu:%d\n", myid());
-		kprintf("proc pid:%d\n", proc->pid);
-		// sched_class->dequeue(proc->rq, proc);
-	}
 	assert(list_empty(&(proc->run_link)));
-	struct run_queue *nrq = rq;
-	if (proc->rq != NULL && proc->time_slice == 0) {
-		nrq = le2rq(list_next(&(proc->rq->rq_link)), rq_link);
-		if (nrq == rq) {
-			nrq = proc->rq;
-		}
-	}
-	sched_class->enqueue(nrq, proc);
+	// struct run_queue *nrq = rq;
+	// if (proc->rq != NULL && proc->time_slice == 0) {
+	// 	nrq = le2rq(list_next(&(proc->rq->rq_link)), rq_link);
+	// 	if (nrq == rq) {
+	// 		nrq = proc->rq;
+	// 	}
+	// }
+	// sched_class->enqueue(nrq, proc);
+	sched_class->enqueue(rq, proc);
 }
 
 static void MLFQ_dequeue(struct run_queue *rq, struct proc_struct *proc)
 {
-	assert(!list_empty(&(proc->run_link)));
+	assert(!list_empty(&(proc->run_link)) && rq == proc->rq);
 	sched_class->dequeue(proc->rq, proc);
 }
 

@@ -29,7 +29,6 @@ static struct sched_class *sched_class;
 static const int MAX_MOVE_PROC_NUM = 100;
 
 static inline void move_run_queue(int src_cpu_id, int dst_cpu_id, struct proc_struct *proc) {
-	kprintf("move %d from %d to %d\n", proc->pid, src_cpu_id, dst_cpu_id);	
     struct run_queue *s_rq = &cpus[src_cpu_id].rqueue;
     struct run_queue *d_rq = &cpus[dst_cpu_id].rqueue;
     sched_class->dequeue(s_rq, proc);
@@ -82,7 +81,7 @@ static inline void load_balance()
 			}
         }
     }
-    for (int i = 0; i < NCPU; ++i) {
+    for (int i = NCPU - 1; i >= 0; i--) {
         spinlock_release(&cpus[i].rqueue_lock);
     }
 }
@@ -106,9 +105,42 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
         assert(proc->cpu_affinity == myid());
 
         spinlock_acquire(&mycpu()->rqueue_lock);
-		kprintf("enqueue %d into %d in cpu %d\n", proc->pid, findRQ(rq), myid());
 		sched_class->enqueue(rq, proc);
         spinlock_release(&mycpu()->rqueue_lock);
+
+	}
+}
+
+static inline void sched_class_enqueue_after_wakeup(struct proc_struct *proc)
+{
+	if (proc != idleproc) {
+		struct run_queue *rq = proc->rq;
+		if(proc->flags & PF_PINCPU){
+			#ifndef ARCH_RISCV64
+			assert(proc->cpu_affinity >= 0 
+					&& proc->cpu_affinity < sysconf.lcpu_count);
+			#else
+			assert(proc->cpu_affinity >= 0 
+					&& proc->cpu_affinity < NCPU);
+			#endif
+		}
+		if (rq == NULL) {
+			rq = &cpus[proc->cpu_affinity].rqueue;
+			proc->cpu_affinity = myid();			
+			assert(proc->cpu_affinity == myid());
+		} else {
+			proc->cpu_affinity = findRQ(rq);						
+			if (proc->cpu_affinity != findRQ(rq)) {
+				kprintf("proc->cpu_affinity: %d\n", proc->cpu_affinity);
+				kprintf("rq: %d\n", findRQ(rq));
+				kprintf("proc->pid: %d\n", proc->pid);
+			}
+        	assert(proc->cpu_affinity == findRQ(rq));
+		}
+
+        spinlock_acquire(&(cpus[findRQ(rq)]).rqueue_lock);
+		sched_class->enqueue(rq, proc);
+        spinlock_release(&(cpus[findRQ(rq)]).rqueue_lock);
 
 	}
 }
@@ -152,6 +184,7 @@ void sched_init(void)
 	list_init(&(rq0->rq_link));
     list_init(&(cpus[id].timer_list.tl));
     spinlock_init(&cpus[id].rqueue_lock);
+	spinlock_init(&stupid_lock);
 	rq0->max_time_slice = 8;
 
 	int i;
@@ -202,6 +235,7 @@ void stop_proc(struct proc_struct *proc, uint32_t wait)
 
 void wakeup_proc(struct proc_struct *proc)
 {
+	spinlock_acquire(&proc->lock);
 	assert(proc->state != PROC_ZOMBIE);
 	bool intr_flag;
 	local_intr_save(intr_flag);
@@ -217,10 +251,7 @@ void wakeup_proc(struct proc_struct *proc)
 				#else
 				assert(proc->pid >= sysconf.lcpu_count);
 				#endif
-				proc->cpu_affinity = myid();
-				kprintf("Beginwakeup %d in cpu %d\n", proc->pid, myid());
-				sched_class_enqueue(proc);
-				kprintf("Endwakeup %d in cpu %d\n", proc->pid, myid());
+				sched_class_enqueue_after_wakeup(proc);
 			}
 		} else {
 			warn("wakeup runnable process.\n");
@@ -228,10 +259,12 @@ void wakeup_proc(struct proc_struct *proc)
 	}
 	spinlock_release(&stupid_lock);
 	local_intr_restore(intr_flag);
+	spinlock_release(&proc->lock);
 }
 
 int try_to_wakeup(struct proc_struct *proc)
 {
+	spinlock_acquire(&proc->lock);
 	assert(proc->state != PROC_ZOMBIE);
 	int ret;
 	bool intr_flag;
@@ -243,7 +276,7 @@ int try_to_wakeup(struct proc_struct *proc)
 			proc->wait_state = 0;
 			if (proc != current) {
 				proc->cpu_affinity = myid();
-				sched_class_enqueue(proc);
+				sched_class_enqueue_after_wakeup(proc);
 			}
 			ret = 1;
 		} else {
@@ -257,13 +290,14 @@ int try_to_wakeup(struct proc_struct *proc)
 				next->wait_state = 0;
 				if (next != current) {
 					next->cpu_affinity = myid();
-					sched_class_enqueue(next);
+					sched_class_enqueue_after_wakeup(next);
 				}
 			}
 		}
 	}
 	spinlock_release(&stupid_lock);
 	local_intr_restore(intr_flag);
+	spinlock_release(&proc->lock);
 	return ret;
 }
 
@@ -413,10 +447,10 @@ void post_switch(void)
 {
     struct proc_struct* prev = mycpu()->prev;
     spinlock_acquire(&prev->lock);
-    if (prev->state == PROC_RUNNABLE && prev->pid >= NCPU)
+    if (prev->state == PROC_RUNNABLE && prev->pid >= NCPU && list_empty(&prev->run_link))
     {
         prev->cpu_affinity = myid();
-        sched_class_enqueue(prev);
+		sched_class_enqueue(prev);
     }
     spinlock_release(&prev->lock);
 }

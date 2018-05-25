@@ -70,7 +70,6 @@ int ipc_event_send(int pid, int event, unsigned int timeout)
 		return -E_INVAL;
 #endif
 	if (proc->wait_state == WT_EVENT_RECV) {
-		kprintf("event %d in cpu %d\n", proc->pid, myid());		
 		wakeup_proc(proc);
 	}
 	current->event_box.event = event;
