@@ -8,6 +8,7 @@
 #include <mmu.h>
 #include <proc.h>
 #include <arch.h>
+#include <spinlock.h>
 
 #define TEST_PAGE 0X1000
 
@@ -37,6 +38,7 @@ struct pmm_manager {
 // struct proc_struct;
 
 extern const struct pmm_manager *pmm_manager;
+extern spinlock_s pmm_lock;
 extern pgd_t *boot_pgdir;
 extern uintptr_t boot_cr3;
 
@@ -204,7 +206,7 @@ static inline pte_t pte_create(uintptr_t ppn, int type) {
 
 static inline pte_t ptd_create(uintptr_t ppn) { return pte_create(ppn, PTE_V); }
 
-extern char bootstack[], bootstacktop[];
+// extern char bootstack[], bootstacktop[];
 
 #endif /* !__KERN_MM_PMM_H__ */
 

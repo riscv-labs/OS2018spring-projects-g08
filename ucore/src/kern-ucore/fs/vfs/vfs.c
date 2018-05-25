@@ -93,6 +93,7 @@ int vfs_set_bootfs(char *fsname)
 			return ret;
 		}
 	}
+	
 	change_bootfs(node);
 	return 0;
 }

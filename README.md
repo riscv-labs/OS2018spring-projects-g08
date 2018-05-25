@@ -16,7 +16,7 @@ or
 ```
   make ARCH=riscv_64 defconfig
 ```
-We temporarily use NUMA settings in menuconfig to set the SMP config. (We can't enable NUMA in risc-v.) If you want to enable SMP, make sure the number in NUMA settings is N (default is 1), which means the number of processors.
+We temporarily use NUMA settings in menuconfig to set the SMP config. (We can't enable NUMA in risc-v.) If you want to enable SMP, make sure the **CPU number in NUMA settings is N** (default is 1), which means the number of processors.
 
 2. Create file system
 ```
@@ -44,6 +44,13 @@ If you define "Support for paging of anonymous memory(swap)" in menuconfig, then
 6. (Optional) Test ucore
 ```
   ./uCore_test -d obj
+```
+
+**Note:** Support for Darwin (macOS) has been added to the test script. Note however, that macOS by default ships the BSD `sed`, which is not supported by the test script. To run the test script, you need to install the GNU `sed`. Instructions:
+
+```
+  brew install gnu-sed
+  SED=gsed ./uCore_test -d obj
 ```
 
 ## 学习笔记

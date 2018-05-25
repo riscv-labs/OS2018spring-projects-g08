@@ -33,6 +33,7 @@ const struct pmm_manager *pmm_manager;
 void init_memmap(struct Page *base, size_t n)
 {
 	pmm_manager->init_memmap(base, n);
+	spinlock_init(&pmm_lock);
 }
 
 /**
@@ -84,9 +85,11 @@ struct Page *alloc_pages(size_t n)
 	bool intr_flag;
 try_again:
 	local_intr_save(intr_flag);
+	spinlock_acquire(&pmm_lock);	
 	{
 		page = pmm_manager->alloc_pages(n);
 	}
+	spinlock_release(&pmm_lock);	
 	local_intr_restore(intr_flag);
 	if (page == NULL && try_free_pages(n)) {
 		goto try_again;
@@ -119,9 +122,11 @@ void free_pages(struct Page *base, size_t n)
 {
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&pmm_lock);
 	{
 		pmm_manager->free_pages(base, n);
 	}
+	spinlock_release(&pmm_lock);
 	local_intr_restore(intr_flag);
 	pls_write(used_pages, pls_read(used_pages) - n);
 }
@@ -135,9 +140,11 @@ size_t nr_free_pages(void)
 	size_t ret;
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&pmm_lock);
 	{
 		ret = pmm_manager->nr_free_pages();
 	}
+	spinlock_release(&pmm_lock);
 	local_intr_restore(intr_flag);
 	return ret;
 }

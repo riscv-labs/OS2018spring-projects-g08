@@ -41,6 +41,8 @@ int vkprintf(const char *fmt, va_list ap)
 	return cnt;
 }
 
+static spinlock_s kprintf_lock;
+
 /* *
  * kprintf - formats a string and writes it to stdout
  *
@@ -49,11 +51,14 @@ int vkprintf(const char *fmt, va_list ap)
  * */
 int kprintf(const char *fmt, ...)
 {
+	spinlock_acquire(&kprintf_lock);
 	va_list ap;
 	int cnt;
 	va_start(ap, fmt);
 	cnt = vkprintf(fmt, ap);
 	va_end(ap);
+	spinlock_release(&kprintf_lock);
+	
 	return cnt;
 }
 

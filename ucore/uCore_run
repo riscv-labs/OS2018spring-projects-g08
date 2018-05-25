@@ -134,18 +134,7 @@ case $UCONFIG_ARCH in
             -drive file=$BUILD_DIR/sfs.img$TEST_POSTFIX,media=disk,cache=writeback,index=2 \
             $EXTRA_OPT
         ;;
-    # riscv_64)
-    #     QEMU=qemu
-    #     which qemu-system-riscv64 > /dev/null 2>&1
-    #     if [ $? -eq 0 ]; then
-    #         QEMU=qemu-system-riscv64
-    #     fi
-    #     exec $QEMU -machine virt \
-    #         -kernel $BUILD_DIR/kernel.img \
-    #         -nographic
-    #     ;;
-    # For uCore_test: #
-    riscv_64)
+  riscv_64)
         QEMU=qemu
         which qemu-system-riscv64 > /dev/null 2>&1
         if [ $? -eq 0 ]; then
@@ -165,9 +154,9 @@ case $UCONFIG_ARCH in
                 EXTRA_OPT+=" -s -S"
             fi
         fi
-        exec $QEMU -machine virt -m 128 \
+        exec $QEMU -machine virt -m 1024 \
             -kernel $BUILD_DIR/kernel.img$TEST_POSTFIX \
             -drive file=$BUILD_DIR/sfs.img$TEST_POSTFIX,media=disk,cache=writeback,index=2 \
-            $EXTRA_OPT
-        ;;
+            $EXTRA_OPT -smp cpus=$UCONFIG_NR_CPUS
+;;
 esac

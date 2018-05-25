@@ -1,4 +1,4 @@
-#ifndef __GLUE_UCORE_MP_H__
+#if !defined(__GLUE_UCORE_MP_H__) && !defined(ARCH_RISCV64)
 #define __GLUE_UCORE_MP_H__
 #include "mplimits.h"
 #include <memlayout.h>

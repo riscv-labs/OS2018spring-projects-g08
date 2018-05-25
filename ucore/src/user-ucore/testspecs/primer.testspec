@@ -1,8 +1,8 @@
 @program	/testbin/primer
-@timeout	50
+@timeout	500
 @failin		i386 amd64 arm
 
-  - 'kernel_execve: pid = [0-9}{1,2}, name = "/testbin/primer".'
+  - 'kernel_execve: pid = [0-9]{1,2}, name = "/testbin/primer".'
     'sharemem init ok.'
     '5 is a primer.'
     '71 is a primer.'

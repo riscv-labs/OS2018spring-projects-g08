@@ -3,6 +3,8 @@
 #include <intr.h>
 #include <monitor.h>
 #include <kio.h>
+#include <proc.h>
+#include <smp.h>
 #include <mod.h>
 
 static bool is_panic = 0;
@@ -22,6 +24,7 @@ void __panic(const char *file, int line, const char *fmt, ...)
 	va_list ap;
 	va_start(ap, fmt);
 	kprintf("kernel panic at %s:%d:\n    ", file, line);
+	kprintf("At CPU %d, process %s, pid %d\n", myid(), current->name, current->pid);
 	vkprintf(fmt, ap);
 	kprintf("\n");
 	va_end(ap);

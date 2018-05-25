@@ -72,7 +72,7 @@ bbl启动每个hart后，会让每个hart跳转到操作系统的入口处，并
  * cpu_online_mask  - has bit 'cpu' set iff cpu available to scheduler
  * cpu_active_mask  - has bit 'cpu' set iff cpu available to migration
 
-TODO:研究`smpboot.c`中的`__cpu_up`是在哪里调用的。
+TODO:研究`smpboot.c`中的`__cpu_on`是在哪里调用的。
 
 
 # xv6

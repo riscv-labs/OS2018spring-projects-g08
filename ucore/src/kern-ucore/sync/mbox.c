@@ -14,6 +14,9 @@
 #include <assert.h>
 #include <clock.h>
 #include <string.h>
+#include <spinlock.h>
+
+static spinlock_s mbox_lock;
 
 struct msg_seg {
 	struct msg_seg *next;
@@ -126,6 +129,7 @@ static struct msg_mbox *new_mbox(unsigned int max_slots)
 	bool intr_flag;
 	struct msg_mbox *mbox = NULL;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&mbox_lock);
 	if (list_empty(&free_mbox_list)) {
 		int i, id;
 		for (i = 0; i < MAX_MBOX_PAGES; i++) {
@@ -136,6 +140,7 @@ static struct msg_mbox *new_mbox(unsigned int max_slots)
 		if (i == MAX_MBOX_PAGES) {
 			goto out;
 		}
+		
 		local_intr_restore(intr_flag);
 
 		struct Page *page = alloc_page();
@@ -165,6 +170,8 @@ static struct msg_mbox *new_mbox(unsigned int max_slots)
 	mbox->max_slots = max_slots;
 
 out:
+	spinlock_release(&mbox_lock);
+
 	local_intr_restore(intr_flag);
 	return mbox;
 }
@@ -247,17 +254,20 @@ send_msg(struct msg_mbox *mbox, struct msg_msg *msg, timer_t * timer)
 	uint32_t ret;
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&mbox_lock);
 	mbox->inuse++;
 	wait_t __wait, *wait = &__wait;
 	while (mbox->max_slots <= mbox->slots) {
 		assert(mbox->state == OPENED);
 		wait_current_set(&(mbox->senders), wait, WT_MBOX_SEND);
 		ipc_add_timer(timer);
+		spinlock_release(&mbox_lock);
 		local_intr_restore(intr_flag);
 
 		schedule();
 
 		local_intr_save(intr_flag);
+		spinlock_acquire(&mbox_lock);
 		ipc_del_timer(timer);
 		wait_current_del(&(mbox->senders), wait);
 		if (mbox->state != OPENED || wait->wakeup_flags != WT_MBOX_SEND) {
@@ -279,6 +289,7 @@ out:
 			mbox_free(mbox);
 		}
 	}
+	spinlock_release(&mbox_lock);
 	local_intr_restore(intr_flag);
 	return ret;
 }
@@ -365,17 +376,20 @@ recv_msg(struct msg_mbox *mbox, size_t max_bytes, struct msg_msg **msg_store,
 	int ret = -1;
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&mbox_lock);
 	mbox->inuse++;
 	wait_t __wait, *wait = &__wait;
 	while (mbox->slots == 0) {
 		assert(mbox->state == OPENED);
 		wait_current_set(&(mbox->receivers), wait, WT_MBOX_RECV);
 		ipc_add_timer(timer);
+		spinlock_release(&mbox_lock);
 		local_intr_restore(intr_flag);
 
 		schedule();
 
 		local_intr_save(intr_flag);
+		spinlock_acquire(&mbox_lock);
 		ipc_del_timer(timer);
 		wait_current_del(&(mbox->receivers), wait);
 		if (mbox->state != OPENED || wait->wakeup_flags != WT_MBOX_RECV) {
@@ -397,6 +411,7 @@ out:
 			mbox_free(mbox);
 		}
 	}
+	spinlock_release(&mbox_lock);
 	local_intr_restore(intr_flag);
 	return ret;
 }
@@ -480,6 +495,7 @@ int ipc_mbox_free(int id)
 	}
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&mbox_lock);
 	{
 		mbox->state = CLOSING;
 
@@ -495,6 +511,7 @@ int ipc_mbox_free(int id)
 			mbox_free(mbox);
 		}
 	}
+	spinlock_release(&mbox_lock);
 	local_intr_restore(intr_flag);
 	return 0;
 }
@@ -532,6 +549,7 @@ void mbox_cleanup(void)
 {
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&mbox_lock);
 	{
 		int i, j;
 		for (i = 0; i < MAX_MBOX_PAGES; i++) {
@@ -554,5 +572,6 @@ void mbox_cleanup(void)
 			}
 		}
 	}
+	spinlock_release(&mbox_lock);
 	local_intr_restore(intr_flag);
 }

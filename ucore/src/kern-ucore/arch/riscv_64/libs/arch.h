@@ -16,6 +16,12 @@
 # define LWU      lw
 # define LOG_REGBYTES 2
 #endif
+
+#define nop_pause() { }
+  // doing nothing is okay, but in x86, `pause` is recommended to save energy
+  // but RISC-V seems do not have the corresponding instruction.
+  // -- twd2
+
 #define REGBYTES (1 << LOG_REGBYTES)
 
 #define MSTATUS_UIE         0x00000001

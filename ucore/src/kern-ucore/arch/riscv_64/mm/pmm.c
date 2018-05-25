@@ -12,32 +12,36 @@
 #include <arch.h>
 #include <slab.h>
 #include <proc.h>
-#include <mp.h>
+#include <smp.h>
 #include <vmm.h>
 #include <swap.h>
 #include <ide.h>
 #include <ramdisk.h>
 
-static DEFINE_PERCPU_NOINIT(size_t, used_pages);
-DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
+/* We don't support NUMA. */
+// static DEFINE_PERCPU_NOINIT(size_t, used_pages);
+// DEFINE_PERCPU_NOINIT(list_entry_t, page_struct_free_list);
 
+extern struct cpu cpus[];
 
 // virtual address of physical page array
 struct Page *pages;
 // amount of physical memory (in pages)
 size_t npage = 0;
 // the kernel image is mapped at VA=KERNBASE and PA=info.base
-uint64_t va_pa_offset;
+uint64_t va_pa_offset = 0xFFFFFFC000000000;
 // memory starts at 0x80000000 in RISC-V
 const size_t nbase = DRAM_BASE / PGSIZE;
 
 // virtual address of boot-time page directory
-pgd_t *boot_pgdir = NULL;
+extern pgd_t __boot_pgdir;
+pgd_t *boot_pgdir = &__boot_pgdir;
 // physical address of boot-time page directory
 uintptr_t boot_cr3;
 
 // physical memory management
 const struct pmm_manager *pmm_manager;
+spinlock_s pmm_lock;
 
 /* *
  * The page directory entry corresponding to the virtual address range
@@ -61,6 +65,7 @@ static void init_pmm_manager(void) {
     kprintf("memory management: %s\n", pmm_manager->name);
 
     pmm_manager->init();
+    spinlock_init(&pmm_lock);
 }
 
 // init_memmap - call pmm->init_memmap to build Page struct for free memory
@@ -122,9 +127,11 @@ struct Page *alloc_pages(size_t n) {
 try_again:
 #endif
 	local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
 	{
 		page = pmm_manager->alloc_pages(n);
 	}
+    spinlock_release(&pmm_lock);
 	local_intr_restore(intr_flag);
 #ifdef UCONFIG_SWAP
 	if (page == NULL && try_free_pages(n)) {
@@ -132,7 +139,11 @@ try_again:
 	}
 #endif
 
-	get_cpu_var(used_pages) += n;
+    /* We don't support NUMA. */
+	// get_cpu_var(used_pages) += n;
+
+    mycpu()->used_pages += n;    
+
 	return page;
 }
 
@@ -140,16 +151,26 @@ try_again:
 void free_pages(struct Page *base, size_t n) {
     bool intr_flag;
     local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
     {
         pmm_manager->free_pages(base, n);
     }
+    spinlock_release(&pmm_lock);
     local_intr_restore(intr_flag);
-    get_cpu_var(used_pages) -= n;
+
+    /* We don't support NUMA. */
+    // get_cpu_var(used_pages) -= n;
+
+    mycpu()->used_pages -= n;    
 }
 
 size_t nr_used_pages(void)
 {
-	return get_cpu_var(used_pages);
+    int i;
+    size_t r = 0;
+    for(i = 0; i < NCPU; i ++)
+        r += cpus[i].used_pages;
+    return r;
 }
 
 // nr_free_pages - call pmm->nr_free_pages to get the size (nr*PAGESIZE)
@@ -158,9 +179,11 @@ size_t nr_free_pages(void) {
     size_t ret;
     bool intr_flag;
     local_intr_save(intr_flag);
+    spinlock_acquire(&pmm_lock);
     {
         ret = pmm_manager->nr_free_pages();
     }
+    spinlock_release(&pmm_lock);
     local_intr_restore(intr_flag);
     return ret;
 }
@@ -169,20 +192,18 @@ size_t nr_free_pages(void) {
 static void page_init(void) {
     extern char kern_entry[];
 
-    va_pa_offset = KERNBASE - (uint64_t)kern_entry;
-
-    uint64_t mem_begin = (uint64_t)kern_entry;
-    uint64_t mem_end = (128 << 20) + DRAM_BASE; // 128MB memory on qemu
+    uint64_t mem_begin = (uint64_t)PADDR(kern_entry);
+    uint64_t mem_end = (256 << 20) + DRAM_BASE; // 256MB memory on qemu
     uint64_t mem_size = mem_end - mem_begin;
 
     kprintf("physical memory map:\n");
-    kprintf("  memory: 0x%08lx, [0x%08lx, 0x%08lx].\n", mem_size, mem_begin,
+    kprintf("  memory: 0x%016llx, [0x%016llx, 0x%016llx].\n", mem_size, mem_begin,
             mem_end - 1);
 
     uint64_t maxpa = mem_end;
 
-    if (maxpa > KERNTOP) {
-        maxpa = KERNTOP;
+    if (maxpa > PADDR(KERNTOP)) {
+        maxpa = PADDR(KERNTOP);
     }
 
     extern char end[];
@@ -208,12 +229,12 @@ static void page_init(void) {
 
 static void enable_paging(void) {
     // set page table
-    write_csr(satp, 0x8000000000000000 | (boot_cr3 >> RISCV_PGSHIFT));
+    write_csr(satp, SATP_SV39 | (boot_cr3 >> RISCV_PGSHIFT));
 }
 
 // boot_map_segment - setup&enable the paging mechanism
 // parameters
-//  la:   linear address of this memory need to map (after x86 segment map)
+//  la:   linear address of this memory need to map
 //  size: memory size
 //  pa:   physical address of this memory
 //  perm: permission of this memory
@@ -224,7 +245,7 @@ void boot_map_segment(pgd_t *pgdir, uintptr_t la, size_t size,
     la = ROUNDDOWN(la, PGSIZE);
     pa = ROUNDDOWN(pa, PGSIZE);
     for (; n > 0; n--, la += PGSIZE, pa += PGSIZE) {
-        pte_t *ptep = get_pte(pgdir, la, 1);
+        pte_t *ptep = get_pte(pgdir, la, 1);        
         assert(ptep != NULL);
 		ptep_map(ptep, pa);
 		ptep_set_perm(ptep, perm);
@@ -246,7 +267,9 @@ void *boot_alloc_page(void) {
 // pmm_init - setup a pmm to manage physical memory, build PDT&PT to setup
 // paging mechanism
 //         - check the correctness of pmm & paging mechanism, print PDT&PT
-void pmm_init(void) {        
+void pmm_init(void) {  
+    // We've already enabled paging
+    boot_cr3 = PADDR(boot_pgdir);
     // We need to alloc/free the physical memory (granularity is 4KB or other
     // size).
     // So a framework of physical memory manager (struct pmm_manager)is defined
@@ -257,9 +280,11 @@ void pmm_init(void) {
     // Now the first_fit/best_fit/worst_fit/buddy_system pmm are available.
     init_pmm_manager();
     
+    
     // detect physical memory space, reserve already used memory,
     // then use pmm->init_memmap to create free page list
     page_init();
+
 
     // use pmm->check to verify the correctness of the alloc/free function in a
     // pmm
@@ -280,8 +305,6 @@ void pmm_init(void) {
     boot_pgdir[PGX(VPT)] = pte_create(PPN(boot_cr3), PAGE_TABLE_DIR);
 
     // map all physical memory to linear memory with base linear addr KERNBASE
-    // linear_addr KERNBASE~KERNBASE+KMEMSIZE = phy_addr 0~KMEMSIZE
-    // But shouldn't use this map until enable_paging() & gdt_init() finished.
     boot_map_segment(boot_pgdir, KERNBASE, KMEMSIZE, PADDR(KERNBASE),
                      READ_WRITE_EXEC);
 
@@ -289,29 +312,23 @@ void pmm_init(void) {
 		boot_map_segment(boot_pgdir, DISK_FS_VBASE,
 				 ROUNDUP(initrd_end - initrd_begin, PGSIZE),
 				 (uintptr_t) PADDR(initrd_begin), PTE_W | PTE_R);
-		kprintf("mapping initrd to 0x%08x\n", DISK_FS_VBASE);
+		kprintf("mapping initrd to 0x%016llx\n", DISK_FS_VBASE);
 	}
     if (CHECK_INITRD_CP_EXIST()) {
 		boot_map_segment(boot_pgdir, DISK2_FS_VBASE,
 				 ROUNDUP(initrd_cp_end - initrd_cp_begin, PGSIZE),
 				 (uintptr_t) PADDR(initrd_cp_begin), PTE_W | PTE_R);
-		kprintf("mapping initrd_cp to 0x%08x\n", DISK2_FS_VBASE);
+		kprintf("mapping initrd_cp to 0x%016llx\n", DISK2_FS_VBASE);
 	}
 #ifdef UCONFIG_SWAP
     if (CHECK_SWAPRD_EXIST()) {
 		boot_map_segment(boot_pgdir, DISK_SWAP_VBASE,
 				 ROUNDUP(swaprd_end - swaprd_begin, PGSIZE),
 				 (uintptr_t) PADDR(swaprd_begin), PTE_W | PTE_R);
-		kprintf("mapping swaprd to 0x%08x\n", DISK_SWAP_VBASE);
+		kprintf("mapping swaprd to 0x%016llx\n", DISK_SWAP_VBASE);
 	}
 #endif
-    // temporary map:
-    // virtual_addr 3G~3G+4M = linear_addr 0~4M = linear_addr 3G~3G+4M =
-    // phy_addr 0~4M
-    // boot_pgdir[0] = boot_pgdir[PDX(KERNBASE)];
-
     enable_paging();
-
     // now the basic virtual memory map(see memalyout.h) is established.
     // check the correctness of the basic virtual memory map.
     check_boot_pgdir();
@@ -324,9 +341,15 @@ void pmm_init(void) {
 void pmm_init_ap(void)
 {
 	list_entry_t *page_struct_free_list =
-	    get_cpu_ptr(page_struct_free_list);
+	    &mycpu()->page_struct_free_list;
 	list_init(page_struct_free_list);
-	get_cpu_var(used_pages) = 0;
+    
+	mycpu()->used_pages = 0;
+    /* We don't support NUMA. */
+    // list_entry_t *page_struct_free_list =
+	//     get_cpu_ptr(page_struct_free_list);
+	// list_init(page_struct_free_list);
+	// get_cpu_var(used_pages) = 0;
 }
 
 // invalidate a TLB entry, but only if the page tables being
@@ -343,6 +366,7 @@ void tlb_invalidate(pgd_t *pgdir, uintptr_t la) {
 }
 
 void check_alloc_page(void) {
+    assert(myid() == 0);
     pmm_manager->check();
     kprintf("check_alloc_page() succeeded!\n");
 }
@@ -369,11 +393,9 @@ void check_pgdir(void) {
     assert(get_pte(boot_pgdir, PGSIZE, 0) == ptep);
 
     p2 = alloc_page();
-    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_U | PTE_W) == 0);
+    assert(page_insert(boot_pgdir, p2, PGSIZE, PTE_W) == 0);
     assert((ptep = get_pte(boot_pgdir, PGSIZE, 0)) != NULL);
-    assert(*ptep & PTE_U);
     assert(*ptep & PTE_W);
-    //assert(boot_pgdir[0] & PTE_U);
     assert(page_ref(p2) == 1);
 
     assert(page_insert(boot_pgdir, p1, PGSIZE, 0) == 0);
@@ -481,51 +503,5 @@ static int get_pgtable_items(size_t left, size_t right, size_t start,
 
 // print_pgdir - print the PDT&PT
 void print_pgdir(void) {
-    kprintf("-------------------- BEGIN --------------------\n");
-    size_t left, right = 0, perm;
-    while ((perm = get_pgtable_items(0, NPDEENTRY, right, vpd, &left,
-                                     &right)) != 0) {
-        kprintf("PDE(%03x) %08x-%08x %08x %s\n", right - left, left * PTSIZE,
-                right * PTSIZE, (right - left) * PTSIZE, perm2str(perm));
 
-        if ((perm & READ_WRITE_EXEC) != PAGE_TABLE_DIR) {
-            continue;
-        }
-
-        size_t l, r = left * NPTEENTRY;
-        uintptr_t i;
-        size_t old_l, old_r, old_perm = 0;
-        for (i = left; i < right; i++) {
-            while (1) {
-                perm = get_pgtable_items(
-                    i * NPTEENTRY, (i + 1) * NPTEENTRY, r,
-                    (uintptr_t *)(KADDR((uintptr_t)PDE_ADDR(vpd[i]))) -
-                        i * NPTEENTRY,
-                    &l, &r);
-
-                if (perm == 0) {
-                    break;
-                }
-
-                if (old_perm != perm) {
-                    if (old_perm != 0) {
-                        kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n",
-                                old_r - old_l, old_l * PGSIZE, old_r * PGSIZE,
-                                (old_r - old_l) * PGSIZE, perm2str(old_perm));
-                    }
-                    old_l = l;
-                    old_r = r;
-                    old_perm = perm;
-                } else {
-                    old_r = r;
-                }
-            }
-        }
-        if (old_perm != 0) {
-            kprintf("  |-- PTE(%05x) %08x-%08x %08x %s\n", old_r - old_l,
-                    old_l * PGSIZE, old_r * PGSIZE, (old_r - old_l) * PGSIZE,
-                    perm2str(old_perm));
-        }
-    }
-    kprintf("--------------------- END ---------------------\n");
 }

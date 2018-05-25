@@ -4,6 +4,7 @@
 #include <kio.h>
 #include <stdio.h>
 #include <arch.h>
+#include <smp.h>
 
 volatile size_t ticks;
 
@@ -39,7 +40,8 @@ void clock_init(void) {
     set_csr(sie, MIP_STIP);
 
     // initialize time counter 'ticks' to zero
-    ticks = 0;
+    if(myid() == 0)
+        ticks = 0;
 
     kprintf("++ setup timer interrupts\n");
 }

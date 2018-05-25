@@ -3,6 +3,7 @@
 
 const int max_child = 32;
 
+
 int main(void)
 {
 	int n, pid;

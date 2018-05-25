@@ -17,6 +17,7 @@
 #include <kio.h>
 #include <mp.h>
 #include <sched.h>
+#include <spinlock.h>
 
 #ifdef UCONFIG_SWAP
 
@@ -79,6 +80,8 @@ swap implementation is in kswapd_main(swap.c::proj11::lab3), and the steps are s
 
 // the max offset of swap entry
 size_t max_swap_offset;
+
+static spinlock_s swap_lock;
 
 // the list of pages for swap
 typedef struct {
@@ -192,6 +195,8 @@ void swap_init(void)
 
 	wait_queue_init(&kswapd_done);
 	swap_init_ok = 1;
+
+	spinlock_init(&swap_lock);
 }
 
 // try_free_pages - calculate pressure to estimate the number(pressure<<5) of needed page frames in ucore currently, 
@@ -213,6 +218,7 @@ bool try_free_pages(size_t n)
 
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&swap_lock);
 	{
 		wait_init(wait, current);
 		current->state = PROC_SLEEPING;
@@ -222,6 +228,7 @@ bool try_free_pages(size_t n)
 			wakeup_proc(kswapd);
 		}
 	}
+	spinlock_release(&swap_lock);
 	local_intr_restore(intr_flag);
 
 	schedule();
@@ -234,9 +241,11 @@ static void kswapd_wakeup_all(void)
 {
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	spinlock_acquire(&swap_lock);
 	{
 		wakeup_queue(&kswapd_done, WT_KSWAPD, 1);
 	}
+	spinlock_release(&swap_lock);
 	local_intr_restore(intr_flag);
 }
 

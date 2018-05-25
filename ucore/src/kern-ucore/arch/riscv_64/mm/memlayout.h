@@ -43,35 +43,39 @@
  * */
 
 /* All physical memory mapped at this address */
-// #define KERNBASE            0xC0000000
-#define KERNBASE            0x80200000
+#define KERNBASE            0xFFFFFFC080200000
 #define PBASE				KERNBASE
-#define KMEMSIZE            0x38000000                  // the maximum amount of physical memory
+#define KMEMSIZE            0x0000000038000000                  // the maximum amount of physical memory
 #define KERNTOP             (KERNBASE + KMEMSIZE)
 
 #define DISK_FS_VBASE       KERNTOP
-#define DISK_FS_SIZE        0x20000000
-#define DISK_SWAP_VBASE     DISK_FS_VBASE + DISK_FS_SIZE
+#define DISK_FS_SIZE        0x0000000020000000
+#define DISK_FS_VTOP        DISK_FS_VBASE + DISK_FS_SIZE
 
-#define DISK2_FS_VBASE       DISK_SWAP_VBASE 
+#define DISK2_FS_VBASE      DISK_FS_VTOP
+#define DISK2_FS_VTOP       DISK2_FS_VBASE + DISK_FS_SIZE
+
+#define DISK_SWAP_VBASE     DISK2_FS_VTOP + DISK_FS_SIZE
+
 /* *
  * Virtual page table. Entry PDX[VPT] in the PD (Page Directory) contains
  * a pointer to the page directory itself, thereby turning the PD into a page
  * table, which maps all the PTEs (Page Table Entry) containing the page mappings
  * for the entire virtual address space into that 4 Meg region starting at VPT.
  * */
-#define VPT                 0xFAC00000
+#define VPT                 0xFFFFFFE000000000
 
-#define KSTACKPAGE          2                           // # of pages in kernel stack
+#define KSTACKPAGE          4                           // # of pages in kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
+#define KSTACKSHIFT         14                          // log2(KSTACKSIZE)
 
-#define USERTOP             0x80000000
+#define USERTOP             0x0000004000000000
 #define USTACKTOP           USERTOP
-#define USTACKPAGE          256                         // # of pages in user stack
+#define USTACKPAGE          4096                         // # of pages in user stack
 #define USTACKSIZE          (USTACKPAGE * PGSIZE)       // sizeof user stack
 
-#define USERBASE            0x00200000
-#define UTEXT               0x00800000                  // where user programs generally begin
+#define USERBASE            0x0000000000200000
+#define UTEXT               0x0000000000800000          // where user programs generally begin
 #define USTAB               USERBASE                    // the location of the user STABS data structure
 
 #define USER_ACCESS(start, end)                     \

@@ -36,6 +36,7 @@ void work(void)
 
 int main(void)
 {
+
 	parent = getpid();
 	if ((pid1 = fork()) == 0) {
 		loop();

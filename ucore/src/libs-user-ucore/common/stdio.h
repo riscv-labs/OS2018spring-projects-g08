@@ -4,6 +4,13 @@
 #include <types.h>
 #include <stdarg.h>
 
+/*
+  For user libs, we ensure that console-print is thread-safe.
+  But fprintf and snprintf is not thread-safe. We doesn't provide lock for them 
+  because it is inefficient. User should lock them if necessarry.
+*/
+sem_t cprintf_lock;
+
 /* kern/libs/stdio.c */
 int cprintf(const char *fmt, ...);
 int vcprintf(const char *fmt, va_list ap);

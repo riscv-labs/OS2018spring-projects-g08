@@ -122,6 +122,10 @@ menuconfig: $(CONFIG_DIR) $(CONFIG)/mconf $(CONFIG_SCRIPT)
 	@if ! $(CONFIG)/mconf $(CONFIG_CONFIG_IN); then \
 		test -f .config.cmd || rm -f $(CONFIG_SCRIPT); \
 	fi
+	## FIXME: temporary solution
+	@rm -f $(TOPDIR)/src/kern-ucore/module/include/asm $(TOPDIR)/src/kern-ucore/module/include/mach
+	@ln -sf asm-arm $(TOPDIR)/src/kern-ucore/module/include/asm
+	@ln -sf mach-goldfish/include/mach $(TOPDIR)/src/kern-ucore/module/include/mach
 
 kmod:
 	$(MAKE) -f $(TOPDIR)/src/kmod/Makefile -C $(TOPDIR)/src/kmod T_BASE=$(TOPDIR) CC=$(TARGET_CC) LD=$(TARGET_LD) all
@@ -167,9 +171,9 @@ $(SFSIMG_FILE): $(TOOLS_MKSFS) userlib userapp FORCE kmod | $(OBJPATH_ROOT)
 	@mkdir -p $(TMPSFS)/lib/modules
 	@cp -r $(TOPDIR)/src/kmod/*.ko $(TOPDIR)/src/kmod/*/*.ko $(TMPSFS)/lib/modules/
 	@cp -r $(OBJPATH_ROOT)/user-ucore/bin $(TMPSFS)
-ifneq ($(UCORE_TEST),)
+#ifneq ($(UCORE_TEST),)
 	@cp -r $(OBJPATH_ROOT)/user-ucore/testbin $(TMPSFS)
-endif
+#endif
 	@$(Q)$(MAKE) -f $(TOPDIR)/src/user-ucore/Makefile -C $(TOPDIR)/src/user-ucore initial_dir
 	-cp -r $(TOPDIR)/src/user-ucore/_initial/* $(TMPSFS)
 	@rm -f $@

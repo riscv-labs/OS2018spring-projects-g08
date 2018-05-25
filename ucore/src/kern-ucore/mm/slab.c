@@ -113,6 +113,7 @@ struct kmem_cache_s {
 #define SLAB_CACHE_NUM          (MAX_SIZE_ORDER - MIN_SIZE_ORDER + 1)
 
 static kmem_cache_t slab_cache[SLAB_CACHE_NUM];
+static spinlock_s slab_lock;
 
 static void init_kmem_cache(kmem_cache_t * cachep, size_t objsize,
 			    size_t align);
@@ -128,6 +129,7 @@ void slab_init(void)
 		init_kmem_cache(slab_cache + i, 1 << (i + MIN_SIZE_ORDER),
 				align);
 	}
+	spinlock_init(&slab_lock);
 	check_slab();
 }
 
@@ -138,6 +140,8 @@ size_t slab_allocated(void)
 	int i;
 	bool intr_flag;
 	local_intr_save(intr_flag);
+	for(i = 0; i < SLAB_CACHE_NUM; i ++)
+		spinlock_acquire(&slab_cache[i].lock);
 	{
 		for (i = 0; i < SLAB_CACHE_NUM; i++) {
 			kmem_cache_t *cachep = slab_cache + i;
@@ -153,6 +157,8 @@ size_t slab_allocated(void)
 			}
 		}
 	}
+	for(i = 0; i < SLAB_CACHE_NUM; i ++)
+		spinlock_release(&slab_cache[i].lock);
 	local_intr_restore(intr_flag);
 	return total;
 }
@@ -416,7 +422,14 @@ void *kmalloc(size_t size)
 	if (order > MAX_SIZE_ORDER) {
 		return NULL;
 	}
-	return kmem_cache_alloc(slab_cache + (order - MIN_SIZE_ORDER));
+	bool intr_flag;
+	local_intr_save(intr_flag);
+	spinlock_acquire(&slab_lock);
+	void* res = kmem_cache_alloc(slab_cache + (order - MIN_SIZE_ORDER));
+	spinlock_release(&slab_lock);
+	local_intr_restore(intr_flag);
+
+	return res;	
 }
 
 EXPORT_SYMBOL(kmalloc);
@@ -496,7 +509,14 @@ void kfree(void *objp)
 	//according to Linux "If @objp is NULL, no operation is performed."
 	if (!objp)
 		return;
+
+	bool intr_flag;
+
+	local_intr_save(intr_flag);
+	spinlock_acquire(&slab_lock);
 	kmem_cache_free(GET_PAGE_CACHE(kva2page(objp)), objp);
+	spinlock_release(&slab_lock);
+	local_intr_restore(intr_flag);
 }
 
 EXPORT_SYMBOL(kfree);

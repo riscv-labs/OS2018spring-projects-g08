@@ -3,12 +3,27 @@
 stdout=/dev/stdout
 stderr=/dev/stderr
 
+SED=${SED:-sed}
 BUILD_DIR=${BUILD_DIR:-obj}
 RECORD_MODE=${RECORD_MODE:-}
 TEST_CASE=
-TIMEOUT=100
+TIMEOUT=1000
 WAIT_TIMEOUT=0
-MAX_PROCS=`grep processor /proc/cpuinfo | wc -l`
+UNAME=`uname -s`
+if [ "$UNAME" = "Linux" ]; then
+    MAX_PROCS=`grep processor /proc/cpuinfo | wc -l`
+elif [ "$UNAME" = "Darwin" ]; then
+    MAX_PROCS=`sysctl -n hw.ncpu`
+else
+    echo "Unsupported OS. Please try Linux or Darwin."
+    exit 1
+fi
+which lockfile > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "lockfile not found!"
+    echo "You may try installing procmail. For Homebrew: brew install procmail"
+    exit 1
+fi
 
 DEFAULT_TEST=y
 UCORE_TEST_DIR=src/user-ucore
@@ -67,7 +82,7 @@ check_regexps() {
     reg=0
     error=
 
-    sed "/@.*$/d" $spec_file | sed "s/'/\n'/" | sed "s/^![ \t]*/!\n/" | sed "s/^-[ \t]*/-\n/" | sed "/^[[:space:]]*$/d" > $TEST_RESULT_DIR/$PATTERN_TMP.$$
+    $SED "/@.*$/d" $spec_file | $SED "s/'/\n'/" | $SED "s/^![ \t]*/!\n/" | $SED "s/^-[ \t]*/-\n/" | $SED "/^[[:space:]]*$/d" > $TEST_RESULT_DIR/$PATTERN_TMP.$$
     while read i; do
         if [ "x$i" = "x!" ]; then
             not=1
@@ -143,7 +158,7 @@ run_test() {
     arch=
     timeout=
     program=
-    grep "^@.*" $TEST_SPEC | sed "s/^@\([A-Za-z0-9_]*\)[ \t]*\(.*\)$/\1=\"\2\"/g" > $TEST_RESULT_DIR/$SPEC_TMP.$$
+    grep "^@.*" $TEST_SPEC | $SED "s/^@\([A-Za-z0-9_]*\)[ \t]*\(.*\)$/\1=\"\2\"/g" > $TEST_RESULT_DIR/$SPEC_TMP.$$
     source $TEST_RESULT_DIR/$SPEC_TMP.$$
     if [ -z $program ]; then
         return 10
@@ -200,7 +215,7 @@ run_test() {
     ) > /dev/null 2>&1 &
     pid=$!
     sleep $WAIT_TIMEOUT
-
+	
     if [ "$UCONFIG_CROSS_COMPILE" == "riscv32-unknown-elf-" ]; then
         "$UCONFIG_CROSS_COMPILE"gdb -batch -nx \
             -ex "set arch riscv:rv32" \
@@ -221,8 +236,8 @@ run_test() {
             -ex "file $BUILD_DIR/kernel/kernel-$UCONFIG_ARCH.elf.$$"  \
             -ex "b $BRK_FUNC" \
             -ex "c" > /dev/null 2>&1
-    fi
-
+	fi
+	
     kill $pid > /dev/null 2>&1
     SFSIMG_CLEAN=0
 
@@ -264,7 +279,7 @@ run_test_suite() {
             echo ${timeout:-10} $file
         done | sort -nr | grep -o " .*$" > $TEST_RESULT_DIR/$TEST_LIST
     fi
-    cat $TEST_RESULT_DIR/$TEST_LIST | xargs --max-procs=$MAX_PROCS -n 1 "$0" -1
+    cat $TEST_RESULT_DIR/$TEST_LIST | xargs -P $MAX_PROCS -n 1 "$0" -1
 }
 
 while getopts "d:f:hrs:t:w:1:" opt; do

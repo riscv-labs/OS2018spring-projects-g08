@@ -51,11 +51,12 @@ bool trap_in_kernel(struct trapframe *tf) {
 
 void print_trapframe(struct trapframe *tf) {
     kprintf("trapframe at %p\n", tf);
-    print_regs(&tf->gpr);
     kprintf("  status   0x%016lx\n", tf->status);
     kprintf("  epc      0x%016lx\n", tf->epc);
     kprintf("  badvaddr 0x%016lx\n", tf->badvaddr);
     kprintf("  cause    0x%016lx\n", tf->cause);
+    print_stackframe();
+    print_regs(&tf->gpr);
 }
 
 void print_regs(struct pushregs *gpr) {
@@ -120,13 +121,21 @@ static int pgfault_handler(struct trapframe *tf) {
         }
         mm = current->mm;
     }
-    return do_pgfault(mm, 3, tf->badvaddr);
+    if (!trap_in_kernel(tf)) {
+        if (!USER_ACCESS(tf->badvaddr, tf->badvaddr + 1)) {
+            kprintf("user read kernel!\n");
+            print_trapframe(tf);
+            return -1;
+        }
+    }
+    return do_pgfault(mm, tf->status | 3, tf->badvaddr);
 }
 
 static volatile int in_swap_tick_event = 0;
 extern struct mm_struct *check_mm_struct;
 
 void interrupt_handler(struct trapframe *tf) {
+
     intptr_t cause = (tf->cause << 1) >> 1;
     switch (cause) {
         case IRQ_U_SOFT:
@@ -153,11 +162,20 @@ void interrupt_handler(struct trapframe *tf) {
             // directly.
             // clear_csr(sip, SIP_STIP);
             clock_set_next_event();
-            ++ticks;
+            
+            // if(ticks % 100 == 0 && myid() == 1)
+            //     kprintf("TIMER on 1\n");
+            if(myid() == 0){ // TODO: this is not so symmetry
+            // find a more elegant solution
+                ++ticks;
+            }
+
             run_timer_list();
 
-            serial_intr();
-            dev_stdin_write(cons_getc());
+            if(myid() == 0){
+                serial_intr();
+                dev_stdin_write(cons_getc());
+            }
             break;
         case IRQ_H_TIMER:
             kprintf("Hypervisor software interrupt\n");
@@ -239,11 +257,9 @@ void exception_handler(struct trapframe *tf) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
                     if (trap_in_kernel(tf)) {
-                        panic("handle pgfault failed in kernel mode. ret=%d\n",
-                              ret);
+                        panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
                     }
                     kprintf("killed by kernel.\n");
-                    panic("handle user mode pgfault failed. ret=%d\n", ret);
                     do_exit(-E_KILLED);
                 }
             }
@@ -255,11 +271,9 @@ void exception_handler(struct trapframe *tf) {
                     panic("handle pgfault failed. ret=%d\n", ret);
                 } else {
                     if (trap_in_kernel(tf)) {
-                        panic("handle pgfault failed in kernel mode. ret=%d\n",
-                              ret);
+                        panic("handle pgfault failed in kernel mode. ret=%d\n", ret);
                     }
                     kprintf("killed by kernel.\n");
-                    panic("handle user mode pgfault failed. ret=%d\n", ret);
                     do_exit(-E_KILLED);
                 }
             }
@@ -295,7 +309,6 @@ trap(struct trapframe *tf) {
         current->tf = tf;
 
         bool in_kernel = trap_in_kernel(tf);
-
         trap_dispatch(tf);
 
         current->tf = otf;

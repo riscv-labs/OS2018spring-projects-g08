@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <file.h>
 #include <stat.h>
+#include <stdio.h>
 
 int main(int argc, char **argv);
 
@@ -22,6 +23,8 @@ static int initfd(int fd2, const char *path, uint32_t open_flags)
 
 void umain(int argc, char **argv)
 {
+	extern sem_t cprintf_lock;
+	cprintf_lock = sem_init(1);
 	int fd;
 	if ((fd = initfd(0, "stdin:", O_RDONLY)) < 0) {
 		warn("open <stdin> failed: %e.\n", fd);
