@@ -4,6 +4,7 @@
 #include <types.h>
 #include <trap.h>
 
+void kdebug_init(void);
 void print_kerninfo(void);
 void print_stackframe(void);
 void print_debuginfo(uintptr_t eip);

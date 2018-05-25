@@ -93,6 +93,17 @@ SECTIONS
         PROVIDE(__percpu_end = .);
     }
 
+    .symdata : {
+        __STAB_BEGIN__ = .;
+        *(.symdata)
+        __STAB_END__ = .;
+    }
+
+    .strdata : {
+        __STABSTR_BEGIN__ = .;
+        *(.strdata)
+        __STABSTR_END__ = .;
+    }
 
     PROVIDE(end = .);
 
