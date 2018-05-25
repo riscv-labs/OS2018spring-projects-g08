@@ -25,6 +25,7 @@ static void RR_dequeue(struct run_queue *rq, struct proc_struct *proc)
 {
 	assert(!list_empty(&(proc->run_link)) && proc->rq == rq);
 	list_del_init(&(proc->run_link));
+	proc->rq = NULL;
 	rq->proc_num--;
 }
 

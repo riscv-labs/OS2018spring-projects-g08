@@ -29,6 +29,7 @@ static struct sched_class *sched_class;
 static const int MAX_MOVE_PROC_NUM = 100;
 
 static inline void move_run_queue(int src_cpu_id, int dst_cpu_id, struct proc_struct *proc) {
+	kprintf("move %d from %d to %d\n", proc->pid, src_cpu_id, dst_cpu_id);	
     struct run_queue *s_rq = &cpus[src_cpu_id].rqueue;
     struct run_queue *d_rq = &cpus[dst_cpu_id].rqueue;
     sched_class->dequeue(s_rq, proc);
@@ -75,14 +76,18 @@ static inline void load_balance()
             //kprintf("===========%d %d %d======\n", myid(), max_id, needs);
             struct proc_struct* procs_moved[MAX_MOVE_PROC_NUM];//TODO: max proc num in rq
             int num = sched_class->get_proc(&cpus[max_id].rqueue, procs_moved, needs);
-            for (int i = 0; i < num; ++i)
-                move_run_queue(max_id, myid(), procs_moved[i]);
+            for (int i = 0; i < num; ++i) {
+				assert(procs_moved[i]->pid >= NCPU);
+				move_run_queue(max_id, myid(), procs_moved[i]);
+			}
         }
     }
     for (int i = 0; i < NCPU; ++i) {
         spinlock_release(&cpus[i].rqueue_lock);
     }
 }
+
+extern findRQ(struct run_queue *rq);
 
 static inline void sched_class_enqueue(struct proc_struct *proc)
 {
@@ -101,6 +106,7 @@ static inline void sched_class_enqueue(struct proc_struct *proc)
         assert(proc->cpu_affinity == myid());
 
         spinlock_acquire(&mycpu()->rqueue_lock);
+		kprintf("enqueue %d into %d in cpu %d\n", proc->pid, findRQ(rq), myid());
 		sched_class->enqueue(rq, proc);
         spinlock_release(&mycpu()->rqueue_lock);
 
@@ -212,7 +218,9 @@ void wakeup_proc(struct proc_struct *proc)
 				assert(proc->pid >= sysconf.lcpu_count);
 				#endif
 				proc->cpu_affinity = myid();
+				kprintf("Beginwakeup %d in cpu %d\n", proc->pid, myid());
 				sched_class_enqueue(proc);
+				kprintf("Endwakeup %d in cpu %d\n", proc->pid, myid());
 			}
 		} else {
 			warn("wakeup runnable process.\n");

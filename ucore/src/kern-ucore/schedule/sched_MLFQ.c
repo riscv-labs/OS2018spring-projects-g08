@@ -18,12 +18,24 @@ static void MLFQ_init(struct run_queue *rq)
 	} while (le != list);
 }
 
+extern struct cpu cpus[];
+
+int findRQ(struct run_queue *rq) {
+	for (int i = 0; i < 4; i++) {
+		if (rq == &(cpus[i].rqueue)) return i;
+	}
+	return -1;
+}
+
 static void MLFQ_enqueue(struct run_queue *rq, struct proc_struct *proc)
 {
-	// FIXME: only a quick fix to enhance the stability
-	// it means something goes wrong elsewhere
-	// if(!list_empty(&proc->run_link))
-		// return;
+	if(!list_empty(&proc->run_link)) {
+		kprintf("======proc rq:%d\n", findRQ(proc->rq));
+		kprintf("======rq:%d\n", findRQ(rq));
+		kprintf("current cpu:%d\n", myid());
+		kprintf("proc pid:%d\n", proc->pid);
+		// sched_class->dequeue(proc->rq, proc);
+	}
 	assert(list_empty(&(proc->run_link)));
 	struct run_queue *nrq = rq;
 	if (proc->rq != NULL && proc->time_slice == 0) {

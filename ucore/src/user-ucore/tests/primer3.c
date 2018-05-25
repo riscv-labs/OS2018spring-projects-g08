@@ -10,7 +10,7 @@ void primeproc(void)
 	int index = 0, this, num, pid = 0;
 top:
 	recv_event(NULL, &this);
-	cprintf("%d is a primer.\n", this);
+	// cprintf("%d is a primer.\n", this);
 
 	while (recv_event(NULL, &num) == 0) {
 		if ((num % this) == 0) {
