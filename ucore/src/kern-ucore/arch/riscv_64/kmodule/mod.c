@@ -64,6 +64,7 @@ int apply_relocate_add(struct secthdr *sechdrs,
 			*location = SET_BITS(*location, 0, 7, 0x17); // replace lui with auipc
 			break;
 		case R_RISCV_RELAX:
+		case R_RISCV_ALIGN:
 			// kprintf(" R_RISCV_RELAX ");
 			// Linker relaxation not implemented
 			break;

@@ -84,7 +84,7 @@
 
 ### 于志竟成
 
-- 前期学习SMP和LKM。
+- 前期学习SMP和LKM。修ucore+上原有的LKM。
 - 将LKM移植到ucore+ for RISC-V上。
 - ucore+ for RISCV开启SMP，并debug。
 - RISC-V print_stackframe的实现。
@@ -199,17 +199,65 @@ BBL上已经有了初步的SMP支持，我们可以借鉴其中的实现在ucore
 
 最终，我们组完成了RISC-V SMP相关的全部硬件实现，Group03组的杨国烨同学实现了load_balance算法，并参与了一些调bug工作。剩余的主要SMP调bug工作由我和于志竟成不断地推进。
 
-### 将ucore+ for RISC-V 64上的LKM支持SMP
+###  为ucore+ for RISC-V 64添加stack trace功能
 
-动态内核加载模块是ucore+上的一个很有意义的工作，但当初的实现假定了单核CPU，在开启SMP后可能会存在问题。因此，尝试更改动态内核加载模块以适配SMP，是完成前述工作后的一项很有挑战的工作。
+在系统开发过程中，调试本来就是一件非常麻烦的事，基本上任何信息都需要依赖于对系统所处状态的输出。调用栈的结构是系统状态的一个非常重要的方面，如果我们能够在系统出bug的地方获取到其调用栈的结构，我们就能够大致了解到在到达当前状态之前发生的一些事。
 
-//TODO
+遗憾的是，现有的课程设计中支持RISC-V的操作系统均没有实现stack trace，这个问题在我们尝试对我们的系统进行调试时一直困扰着我们。因此，我们为我们的系统添加了stack trace功能。
 
+这个功能的实现首先需要我们对RISC-V下函数调用时栈帧的切换有所了解。在RISC-V ISP文档中，我们发现有如下两个寄存器与栈帧密切相关：
 
+* `sp` ：保存栈顶的地址
+* `fp` (`s0` )：保存栈帧的起始地址
 
+在进行函数调用时，这两个寄存器连同旧的返回地址`ra` 寄存器的值都会被放入栈中，具体的操作在https://stackoverflow.com/questions/34182330/risc-v-assembly-stack-layout-function-call中有比较清晰的描述。
 
+根据这一套规则，我们就可以实现stack trace了。具体实现的过程参考了Linux for RISC-V的代码。
 
-## 
+但是，实现完后我们发现有很多函数调用并不能根据栈帧trace出来。经过一番研究，我们发现问题在于编译器优化。因此，我们又参考了Linux的Makefile中的如下代码段，关闭了编译器对函数调用进行的一些优化：
+
+```
+ifdef CONFIG_FRAME_POINTER
+KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
+else
+...
+endif
+```
+
+其中`-fno-optimize-sibling-calls`这一开关关闭的编译器优化在<https://stackoverflow.com/questions/22037261/what-does-sibling-calls-mean> 中有详细的介绍。
+
+至此，我们可以获得每一层函数调用时PC的值，虽然这对调试而言已经非常有帮助，每次手动在内核的符号中根据PC值查找所属的符号还是非常麻烦的。因此，我们尝试更进一步，让系统自动将PC地址转换成对应的符号。
+
+在ucore/ucore+的i386版本中，地址到符号的转换是通过STABS完成的。具体地，STABS在ELF文件中提供了`.stab和`.stabstr两个sections，分别保存符号的地址以及符号名称，系统只需要在`.stab中通过二分查找找到对应的符号，再到`.stabstr`中获取该符号的名称就可以实现这个功能。
+
+但是，经过一番尝试后，我们发现RISC-V并不支持STABS格式。只要给目标架构为RISC-V的gcc加上`-gstabs`选项，就会得到如下的报警：
+
+```
+cc1: error: target system does not support the 'stabs' debug format
+```
+
+这就比较僵硬了。我们对这个问题想到了两个解决办法：
+
+* 使用其他RISC-V支持的调试信息格式，例如DWARF。
+* 根据ELF中的`.symtab`和`.strtab`两个sections以及section表自己构造一些类似的调试信息出来。
+
+第一种方法需要学习一种新的规范，我们大概看了一下DWARF，发现有些复杂，于是就没有采取这种方法。
+
+第二种方法的好处是我们已经对相关的这一套东西有了比较清晰的了解，但是也有麻烦之处，在于：
+
+* `.symtab`是会被链接器丢掉的。在链接器脚本中似乎没有办法引用输入文件中的`.symtab`。
+* 现有的一些ELF工具，包括`objdump, objcopy, readelf`等，要么不支持抽取`.symtab`的内容，要么只支持奇怪的hexdump。
+
+最后，我们通过`readelf -x`得到`.symtab`和`.strtab`的hexdump，用`sed`和`tail`对得到的文本输出进行了一些适当的编辑，然后用`xxd -r`将输出的hexdump文本反向转换成二进制文件。我们通过
+
+```
+.section .symdata
+.incbin "symtab.raw"
+.section .strdata
+.incbin "strtab.raw"
+```
+
+这样的简单的汇编器指令将这些二进制内容加入到了ELF文件的`.symdata`和`.strdata`两个sections中，然后在链接器脚本中加入了定义了四个符号分别指向这两个sections的起止地址，以方便系统进行引用。
 
 ## 主要代码修改描述
 
